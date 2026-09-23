@@ -1,0 +1,611 @@
+/* css auth */
+
+/* ==========================================
+   GLASSMORPHISM CARD
+   ========================================== */
+.auth-card {
+  background: rgba(18, 18, 22, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 40px 32px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+}
+
+.auth-card__header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.auth-card__title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.auth-card__subtitle {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+/* ==========================================
+   FORM INPUTS & ELEMENTS
+   ========================================== */
+.auth-form__group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-form__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e5e7eb;
+  margin-bottom: 8px;
+}
+
+.auth-form__input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.auth-form__input:focus {
+  border-color: #e50914;
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.25);
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.auth-form__input.is-invalid {
+  border-color: #ef4444;
+}
+
+.auth-form__error {
+  color: #f87171;
+  font-size: 0.8rem;
+  margin-top: 6px;
+}
+
+/* Hàng Ghi nhớ & Quên mật khẩu */
+.auth-form__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  font-size: 0.875rem;
+}
+
+.auth-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #9ca3af;
+  user-select: none;
+}
+
+.auth-checkbox input[type="checkbox"] {
+  accent-color: #e50914;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.auth-link {
+  color: #9ca3af;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.auth-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.auth-link--highlight {
+  color: #e50914;
+  font-weight: 600;
+}
+
+.auth-link--highlight:hover {
+  color: #ff2e3b;
+}
+
+/* Nút bấm Đăng nhập */
+.auth-form__button {
+  width: 100%;
+  height: 50px;
+  background-color: #e50914;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3);
+}
+
+.auth-form__button:hover {
+  background-color: #f6121d;
+  box-shadow: 0 6px 20px rgba(229, 9, 20, 0.45);
+  transform: translateY(-1px);
+}
+
+.auth-form__button:active {
+  transform: translateY(0);
+}
+
+/* Footer & Alert */
+.auth-card__footer {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.auth-alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 20px;
+}
+
+.auth-alert--error {
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 28px 20px;
+  }
+}
+
+/* ==========================================
+   BODY & BASE
+   ========================================== */
+.auth-body {
+  margin: 0;
+  padding: 0;
+  background-color: #050505;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Container bao ngoài phủ kín tuyệt đối */
+.poster-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+  background-color: #08080a;
+}
+
+/* Lưới poster CĂN GIỮA MÀN HÌNH và xòe đều 2 bên */
+.poster-grid {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 220vw;
+  height: 220vh;
+  transform-origin: center center;
+  transform: translate(-50%, -50%) rotate(-15deg) skewX(6deg);
+  opacity: 0.7;
+}
+
+/* Ép kích thước từng cột poster */
+.poster-col {
+  flex: 0 0 180px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.poster-track {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  will-change: transform;
+}
+
+.poster-track img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* ANIMATION TRƯỢT ĐẢO CHIỀU */
+.poster-col--up .poster-track {
+  animation: scrollAlternateUp 25s ease-in-out infinite alternate;
+}
+
+.poster-col--down .poster-track {
+  animation: scrollAlternateDown 28s ease-in-out infinite alternate;
+}
+
+@keyframes scrollAlternateUp {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(calc(-100% + 120vh)); }
+}
+
+@keyframes scrollAlternateDown {
+  0% { transform: translateY(calc(-100% + 120vh)); }
+  100% { transform: translateY(0); }
+}
+
+.poster-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(8, 8, 10, 0.35) 0%,
+    rgba(8, 8, 10, 0.8) 65%,
+    #08080a 100%
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+.auth-container {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+}
+
+/* Container chính */
+.profile-container {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #f3f4f6;
+}
+
+/* Khung card chung */
+.card {
+  background-color: #16161e;
+  border: 1px solid #23232f;
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+/* ==========================================
+   PROFILE CARD (Đã căn ngang chuẩn)
+   ========================================== */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Layout hàng ngang cho 2 chế độ View và Edit */
+.profile-view-mode,
+.profile-edit-mode {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+/* Mặc định ẩn form Edit */
+.profile-edit-mode {
+  display: none !important;
+}
+
+/* Khi ở trạng thái .is-editing -> Ẩn mode View, hiện mode Edit */
+.profile-card.is-editing .profile-view-mode {
+  display: none !important;
+}
+
+.profile-card.is-editing .profile-edit-mode {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+}
+
+/* Avatar Wrapper & Nút Camera */
+.avatar-profile-wrapper {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.avatar-profile {
+  width: 72px;
+  height: 72px;
+  background-color: #583bbd;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 500;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.btn-avatar-edit {
+  display: none;
+  position: absolute;
+  bottom: 0;
+  right: -4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  color: #16161e;
+  border: none;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.profile-card.is-editing .btn-avatar-edit {
+  display: flex;
+}
+
+/* Chi tiết người dùng */
+.user-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.user-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.user-email {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.user-joined {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+/* Style Form Input & Buttons khi chỉnh sửa */
+.profile-edit-mode .form-group {
+  width: 100%;
+  max-width: 400px;
+}
+
+.edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.btn-save {
+  background-color: #ffffff;
+  color: #0d0e12;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-cancel-edit {
+  background-color: transparent;
+  color: #e5e7eb;
+  border: 1px solid #2d2d3d;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-cancel-edit:hover {
+  background-color: #1e1e28;
+}
+
+/* Card hành động (Mật khẩu & Đăng xuất) */
+.action-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Các nút bấm */
+.btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background-color: #ffffff;
+  color: #000000;
+  align-self: flex-start;
+}
+
+.btn-primary:hover {
+  background-color: #e5e7eb;
+}
+
+.btn-secondary {
+  background-color: #1e1e28;
+  color: #e5e7eb;
+  border: 1px solid #2d2d3d;
+}
+
+.btn-secondary:hover {
+  background-color: #272736;
+}
+
+.btn-danger {
+  background-color: #381a1d;
+  color: #f87171;
+}
+
+.btn-danger:hover {
+  background-color: #4c1d22;
+}
+
+/* Wrapper ẩn/hiện mượt mà Form mật khẩu */
+.password-form-wrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin-top 0.3s ease-out;
+  opacity: 0;
+  margin-top: 0;
+}
+
+.password-form-wrapper.open {
+  max-height: 500px;
+  opacity: 1;
+}
+
+.password-form {
+  background-color: #16161e;
+  border: 1px solid #23232f;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #e5e7eb;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: #0d0e12;
+  border: 1px solid #2d2d3d;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  border-color: #583bbd;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-cancel {
+  background-color: transparent;
+  color: #9ca3af;
+  border: 1px solid #2d2d3d;
+}
+
+.btn-cancel:hover {
+  background-color: #1e1e28;
+  color: #ffffff;
+}
+
+.card.hidden {
+  display: none;
+}
+
+/* Responsive cho Mobile */
+@media (max-width: 576px) {
+  .card {
+    padding: 16px;
+  }
+
+  .profile-card,
+  .profile-view-mode,
+  .profile-card.is-editing .profile-edit-mode {
+    flex-direction: column !important;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .user-details {
+    align-items: center;
+    width: 100%;
+  }
+
+  .btn-primary {
+    align-self: center;
+    width: 100%;
+  }
+
+  .action-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .action-card .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+}

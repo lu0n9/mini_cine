@@ -1,0 +1,282 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+    --primary-red: #ffffff;
+    --dark-bg: #000000;
+    --panel-bg: #0a0a0a;
+    --border-color: rgba(255, 255, 255, 0.1);
+}
+
+body {
+    /* Sử dụng font Outfit chuẩn hiện đại, sắc nét */
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+    background-color: var(--dark-bg);
+    color: #e2e8f0;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+.cinema-screen {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: radial-gradient(circle at 50% 25%, rgba(255, 255, 255, 0.07) 0%, var(--dark-bg) 70%);
+    isolation: isolate;
+}
+
+/* Lưới nền chuyển sang màu đỏ (mờ tinh tế) */
+.projector-grid {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(to right, rgba(255, 42, 77, 0.04) 1px, transparent 1px), 
+                      linear-gradient(to bottom, rgba(255, 42, 77, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: -1;
+}
+
+.lens-flare {
+    position: absolute;
+    top: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 200px;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08) 0%, transparent 75%);
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.site-header {
+    width: min(1200px, 90%);
+    margin: 0 auto;
+    padding: 30px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+}
+
+.brand-badge {
+    background: #ffffff;
+    color: #000000;
+    padding: 8px;
+    border-radius: 10px;
+    font-size: 1.2rem;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.brand-text {
+    color: #fff;
+    font-weight: 900;
+    font-size: 1.25rem;
+    letter-spacing: 0.15em;
+}
+
+.brand-text span {
+    color: #737373;
+}
+
+.live-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: #a3a3a3;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #ffffff;
+    animation: pulse 2s infinite;
+}
+
+.error-container {
+    width: min(650px, 90%);
+    margin: auto;
+    text-align: center;
+    padding: 20px 0;
+    z-index: 2;
+}
+
+.error-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+.glitch-number {
+    font-size: clamp(100px, 20vw, 180px);
+    font-weight: 900;
+    line-height: 1;
+    margin: 10px 0;
+    color: #fff;
+    text-shadow: 4px 4px 0px rgba(255, 255, 255, 0.3), -4px -4px 0px rgba(115, 115, 115, 0.4);
+    letter-spacing: -0.05em;
+    animation: glitchEffect 3s infinite alternate;
+}
+
+.script-box h2 {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 800;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+    color: #fff;
+}
+
+.script-box p {
+    color: #a3a3a3;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 480px;
+    margin: 0 auto 30px;
+}
+
+.control-deck {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.btn-primary, .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.25s ease;
+}
+
+.btn-primary {
+    background: #ffffff;
+    color: #000000;
+    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.15);
+}
+
+.btn-primary:hover {
+    background: #e5e5e5;
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(255, 255, 255, 0.25);
+}
+
+.btn-secondary {
+    background: var(--panel-bg);
+    color: #fff;
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-3px);
+}
+
+.return-link {
+    color: #737373;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.return-link:hover {
+    color: #fff;
+}
+
+.film-roll {
+    position: absolute;
+    top: 40%;
+    width: 280px;
+    height: 55px;
+    background: #030303;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    gap: 15px;
+    padding: 8px 15px;
+    opacity: 0.3;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.film-roll span {
+    flex: 1;
+    background: #000000;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.film-roll.left {
+    left: -100px;
+    transform: rotate(45deg);
+}
+
+.film-roll.right {
+    right: -100px;
+    transform: rotate(-45deg);
+}
+
+.site-footer {
+    width: min(1200px, 90%);
+    margin: 0 auto 30px;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #737373;
+    letter-spacing: 0.1em;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.footer-quote {
+    font-style: italic;
+    color: #525252;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+@keyframes glitchEffect {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(-2px, -2px); }
+    60% { transform: translate(2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
+}
+
+@media (max-width: 768px) {
+    .film-roll { display: none; }
+    .control-deck { flex-direction: column; }
+    .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
+}
