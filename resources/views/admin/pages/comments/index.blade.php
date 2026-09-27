@@ -411,7 +411,7 @@
 
     @if($comments->hasPages())
 
-        <div style="margin-top:20px;">
+        <div class="pagination">
             {{ $comments->links('pagination::custom') }}
         </div>
 

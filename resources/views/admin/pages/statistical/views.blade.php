@@ -239,7 +239,7 @@
         {{-- Pagination --}}
         @if($movieViews->hasPages())
 
-            <div style="margin-top:20px;">
+            <div class="pagination">
 
                 {{ $movieViews->links('pagination::custom') }}
 

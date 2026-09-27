@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ApiKey;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -12,7 +13,16 @@ class CommentAiModerationService
      */
     public function analyze(string $content): array
     {
-        $apiKey = config('services.gemini.api_key');
+        $apiConfig = ApiKey::query()
+            ->where('type', 'ai_moderation')
+            ->orderBy('id')
+            ->first();
+
+        if ($apiConfig && ($apiConfig->status !== 'active' || ($apiConfig->expires_at && $apiConfig->expires_at->isPast()))) {
+            throw new RuntimeException('API Gemini đang bị tắt hoặc đã hết hạn trong trang Quản lý API.');
+        }
+
+        $apiKey = $apiConfig?->key ?: config('services.gemini.api_key');
         $model = config('services.gemini.model');
 
         if (!$apiKey) {
@@ -21,8 +31,10 @@ class CommentAiModerationService
             );
         }
 
+        $endpoint = rtrim($apiConfig?->endpoint ?: 'https://generativelanguage.googleapis.com', '/');
         $url = sprintf(
-            'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s',
+            '%s/v1beta/models/%s:generateContent?key=%s',
+            $endpoint,
             $model,
             $apiKey
         );
@@ -481,6 +493,8 @@ $prompt .= "\n\n" . $content;
                     'responseMimeType' => 'application/json',
                 ],
             ]);
+
+        $apiConfig?->recordRequest();
 
         if (!$response->successful()) {
             throw new RuntimeException(

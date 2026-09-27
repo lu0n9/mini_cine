@@ -68,6 +68,77 @@
             </form>
         </div>
 
+        @php
+            $activePremium = $premiumSubscription ?? $sharedPremiumSubscription;
+            $remainingSeconds = $activePremium?->ends_at
+                ? max(0, now()->diffInSeconds($activePremium->ends_at, false))
+                : 0;
+        @endphp
+        <section class="card premium-profile-card" aria-labelledby="premiumProfileTitle">
+            <div class="premium-profile-heading">
+                <div>
+                    <h2 class="card-title" id="premiumProfileTitle">Gói Premium</h2>
+                    <p class="card-desc">
+                        @if ($premiumSubscription)
+                            Thông tin gói Premium tài khoản của bạn đã đăng ký.
+                        @elseif ($sharedPremiumSubscription)
+                            Bạn đang sử dụng Premium được chia sẻ.
+                        @else
+                            Tài khoản hiện chưa có gói Premium đang hoạt động.
+                        @endif
+                    </p>
+                </div>
+                @if (!$activePremium)
+                    <a href="{{ route('premium.index') }}" class="btn btn-primary">Xem các gói</a>
+                @endif
+            </div>
+
+            @if ($activePremium)
+                <div class="premium-profile-details">
+                    <div class="premium-profile-stat">
+                        <span class="premium-profile-label">Gói đăng ký</span>
+                        <strong>{{ $activePremium->plan?->name ?? 'Premium' }}</strong>
+                    </div>
+                    <div class="premium-profile-stat">
+                        <span class="premium-profile-label">Thời gian còn lại</span>
+                        <strong>
+                            @if ($remainingSeconds >= 86400)
+                                {{ (int) ceil($remainingSeconds / 86400) }} ngày
+                            @elseif ($remainingSeconds >= 3600)
+                                {{ (int) ceil($remainingSeconds / 3600) }} giờ
+                            @else
+                                Dưới 1 giờ
+                            @endif
+                        </strong>
+                        <small>Hết hạn {{ $activePremium->ends_at?->format('d/m/Y H:i') ?? '—' }}</small>
+                    </div>
+                </div>
+            @endif
+
+            @if ($premiumSubscription && $premiumSubscription->shares->isNotEmpty())
+                <div class="premium-shared-accounts">
+                    <h3>Tài khoản đã chia sẻ</h3>
+                    <ul>
+                        @foreach ($premiumSubscription->shares as $share)
+                            @if ($share->user)
+                                <li>
+                                    <span>{{ $share->user->name }}</span>
+                                    <small>{{ $share->user->email }}</small>
+                                </li>
+                            @endif
+                        @endforeach
+                    </ul>
+                </div>
+            @elseif ($sharedPremiumSubscription)
+                <p class="premium-shared-by">
+                    Gói này được chia sẻ bởi {{ $sharedPremiumSubscription->user?->name ?? 'một tài khoản Premium' }}
+                    @if ($sharedPremiumSubscription->user?->email)
+                        ({{ $sharedPremiumSubscription->user->email }})
+                    @endif
+                </p>
+            @endif
+        </section>
+
         <div class="card action-card">
             <div class="card-info">
                 <h3 class="card-title">Mật khẩu</h3>

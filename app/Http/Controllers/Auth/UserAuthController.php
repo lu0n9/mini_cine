@@ -7,8 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class UserAuthController extends Controller
 {
@@ -18,6 +21,77 @@ class UserAuthController extends Controller
     public function showLogin()
     {
         return view('client.pages.auth.login');
+    }
+
+    public function showForgotPassword()
+    {
+        return view('client.pages.auth.forgot-password');
+    }
+
+    public function sendPasswordResetLink(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
+        ]);
+
+        Password::broker('users')->sendResetLink(
+            $request->only('email')
+        );
+
+        // Luôn hiển thị cùng một thông báo để không tiết lộ email có đăng ký hay không.
+        return back()->with(
+            'status',
+            'Nếu email này đã đăng ký, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư của bạn.'
+        );
+    }
+
+    public function showResetPassword(string $token)
+    {
+        return view('client.pages.auth.reset-password', [
+            'token' => $token,
+            'email' => request()->query('email'),
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
+            'password.required' => 'Vui lòng nhập mật khẩu mới.',
+            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+            'password.confirmed' => 'Mật khẩu xác nhận không khớp.',
+        ]);
+
+        $status = Password::broker('users')->reset(
+            $validated,
+            function (User $user) use ($validated) {
+                $user->forceFill([
+                    'password' => $validated['password'],
+                    'remember_token' => Str::random(60),
+                ])->save();
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return redirect()->route('login')->with(
+                'success',
+                'Đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.'
+            );
+        }
+
+        return back()
+            ->withInput($request->only('email'))
+            ->withErrors([
+                'email' => 'Liên kết đặt lại mật khẩu không hợp lệ, đã hết hạn hoặc thông tin tài khoản không chính xác.',
+            ]);
     }
 
     /**
@@ -86,6 +160,10 @@ class UserAuthController extends Controller
 
     public function showRegister()
     {
+        if (!SystemSetting::get('allow_registration', true)) {
+            return redirect()->route('login')->with('error', 'Đăng ký tài khoản hiện đang tạm đóng.');
+        }
+
         return view('client.pages.auth.register');
     }
 
@@ -95,6 +173,10 @@ class UserAuthController extends Controller
 
     public function register(Request $request)
     {
+        if (!SystemSetting::get('allow_registration', true)) {
+            return redirect()->route('login')->with('error', 'Đăng ký tài khoản hiện đang tạm đóng.');
+        }
+
         $validated = $request->validate(
             [
                 'name' => ['required', 'string', 'max:255'],
@@ -135,7 +217,31 @@ class UserAuthController extends Controller
 
     public function showProfile()
     {
-        return view('client.pages.auth.profile');
+        $user = Auth::user();
+
+        $premiumSubscription = $user->premiumSubscriptions()
+            ->with(['plan', 'shares.user'])
+            ->where('status', 'active')
+            ->where('ends_at', '>', now())
+            ->latest('ends_at')
+            ->first();
+
+        $sharedPremiumSubscription = null;
+
+        if (!$premiumSubscription) {
+            $sharedPremiumSubscription = $user->premiumShares()
+                ->with('subscription.plan', 'subscription.user')
+                ->whereHas('subscription', function ($query) {
+                    $query->where('status', 'active')->where('ends_at', '>', now());
+                })
+                ->latest()
+                ->first()?->subscription;
+        }
+
+        return view('client.pages.auth.profile', compact(
+            'premiumSubscription',
+            'sharedPremiumSubscription'
+        ));
     }
 
 

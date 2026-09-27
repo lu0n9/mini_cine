@@ -15,7 +15,7 @@
 
             <p>
                 Upload video để hệ thống tự động encode HLS
-                và lưu lên Supabase.
+                và lưu lên server cloud.
             </p>
         </div>
 
@@ -141,6 +141,7 @@
                                 <option
                                     value="{{ $episode->id }}"
                                     data-movie="{{ $episode->movie_id }}"
+                                    data-season="{{ $episode->season_id }}"
                                     {{ old('episode_id') == $episode->id ? 'selected' : '' }}
                                 >
 
@@ -161,6 +162,58 @@
                             @endforeach
 
                         </select>
+
+                        <button type="button" class="btn ghost" style="margin-top:10px" onclick="openQuickStructureModal()">
+                            + Thêm Season / Episode cho Movie
+                        </button>
+
+                    </div>
+
+
+                    {{-- SERVER SELECTOR --}}
+
+                    <div class="field full">
+
+                        <label for="server_id">
+                            Server lưu trữ
+                        </label>
+
+                        <select
+                            name="server_id"
+                            id="server_id"
+                        >
+
+                            <option value="" {{ old('server_id') ? '' : 'selected' }}>
+                                -- Dùng cấu hình mặc định --
+                            </option>
+
+                            @if(isset($storageServers))
+                                @foreach($storageServers as $server)
+
+                                    <option value="{{ $server->id }}" {{ old('server_id') == $server->id ? 'selected' : '' }}>
+                                        {{ $server->name }}
+                                        @if($server->endpoint)
+                                            — {{ $server->endpoint }}
+                                        @endif
+                                    </option>
+
+                                @endforeach
+                            @endif
+
+                        </select>
+
+                        <small>
+                            Chọn một API Video Storage &amp; CDN đang hoạt động. Nếu để mặc định, hệ thống dùng cấu hình lưu trữ mặc định.
+                            Các server được quản lý tại
+                            <a href="{{ route('admin.system.api') }}" style="color: #3b82f6;">
+                                Quản lý API
+                            </a>.
+                        </small>
+                        @if($storageServers->isEmpty())
+                            <small style="display:block; margin-top:6px; color:#f59e0b;">
+                                Chưa có API Video Storage &amp; CDN đang hoạt động. Hãy thêm hoặc bật API trong Quản lý API.
+                            </small>
+                        @endif
 
                     </div>
 
@@ -412,6 +465,39 @@
 
     </form>
 
+    <div id="quickStructureModal" role="dialog" aria-modal="true" aria-labelledby="quickStructureTitle" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.72);padding:20px;align-items:center;justify-content:center">
+        <div class="panel" style="width:100%;max-width:620px;max-height:90vh;overflow:auto">
+            <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between">
+                <h4 id="quickStructureTitle">Thêm Season / Episode nhanh</h4>
+                <button type="button" class="btn ghost" onclick="closeQuickStructureModal()">Đóng</button>
+            </div>
+            <div class="panel-body">
+                <p style="color:var(--muted);margin-top:0">Movie đang chọn: <strong id="quickMovieName">Chưa chọn</strong></p>
+                <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="field"><label for="quickSeasonNumber">Số Season</label><input id="quickSeasonNumber" type="number" min="1" value="1"></div>
+                    <div class="field"><label for="quickSeasonName">Tên Season (không bắt buộc)</label><input id="quickSeasonName" type="text" maxlength="255" placeholder="Ví dụ: Phần 1"></div>
+                </div>
+                <button id="quickCreateSeason" type="button" class="btn" style="margin-top:12px">Tạo Season</button>
+
+                <hr style="border-color:var(--line);margin:20px 0">
+                <div class="field"><label for="quickEpisodeSeason">Season của Episode</label>
+                    <select id="quickEpisodeSeason"><option value="">-- Chọn hoặc tạo Season --</option>
+                        @foreach($seasons as $season)
+                            <option value="{{ $season->id }}" data-movie="{{ $season->movie_id }}" data-season-number="{{ $season->season_number }}">{{ $season->movie?->title }} — {{ $season->name ?: 'Season ' . $season->season_number }} (S{{ str_pad($season->season_number, 2, '0', STR_PAD_LEFT) }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                    <div class="field"><label for="quickEpisodeNumber">Số Episode</label><input id="quickEpisodeNumber" type="number" min="1" value="1"></div>
+                    <div class="field"><label for="quickEpisodeName">Tên Episode (không bắt buộc)</label><input id="quickEpisodeName" type="text" maxlength="255" placeholder="Mặc định: Tập N"></div>
+                    <div class="field full"><label for="quickEpisodeDuration">Thời lượng (giây, không bắt buộc)</label><input id="quickEpisodeDuration" type="number" min="1" placeholder="Ví dụ: 2400"></div>
+                </div>
+                <button id="quickCreateEpisode" type="button" class="btn" style="margin-top:12px">Tạo Episode và chọn để upload</button>
+                <p id="quickStructureMessage" role="status" style="margin:12px 0 0"></p>
+            </div>
+        </div>
+    </div>
+
 </section>
 
 
@@ -440,6 +526,128 @@ document.addEventListener(
             document.getElementById(
                 'episode_id'
             );
+
+        const quickStructureModal = document.getElementById('quickStructureModal');
+        const quickEpisodeSeason = document.getElementById('quickEpisodeSeason');
+        const quickStructureMessage = document.getElementById('quickStructureMessage');
+
+        function showQuickMessage(message, isError = false) {
+            if (!quickStructureMessage) return;
+            quickStructureMessage.textContent = message;
+            quickStructureMessage.style.color = isError ? '#ef4444' : '#10b981';
+        }
+
+        function filterQuickSeasons() {
+            if (!movieSelect || !quickEpisodeSeason) return;
+            const movieId = movieSelect.value;
+            Array.from(quickEpisodeSeason.options).forEach(option => {
+                option.hidden = option.value !== '' && option.dataset.movie !== movieId;
+            });
+            const selected = quickEpisodeSeason.options[quickEpisodeSeason.selectedIndex];
+            if (selected && selected.dataset.movie !== movieId) quickEpisodeSeason.value = '';
+        }
+
+        window.openQuickStructureModal = function () {
+            if (!movieSelect || !movieSelect.value) {
+                alert('Hãy chọn Movie trước khi thêm Season hoặc Episode.');
+                return;
+            }
+            const movieOption = movieSelect.options[movieSelect.selectedIndex];
+            document.getElementById('quickMovieName').textContent = movieOption.textContent.trim();
+            quickStructureModal.style.display = 'flex';
+            showQuickMessage('');
+            filterQuickSeasons();
+
+            const currentMovieSeasons = Array.from(quickEpisodeSeason.options)
+                .filter(option => option.value && option.dataset.movie === movieSelect.value);
+            const nextSeason = currentMovieSeasons.reduce((maximum, option) => Math.max(maximum, Number(option.dataset.seasonNumber || 0)), 0) + 1;
+            document.getElementById('quickSeasonNumber').value = nextSeason;
+            if (currentMovieSeasons.length && !quickEpisodeSeason.value) {
+                quickEpisodeSeason.value = currentMovieSeasons[currentMovieSeasons.length - 1].value;
+            }
+        };
+
+        window.closeQuickStructureModal = function () {
+            quickStructureModal.style.display = 'none';
+        };
+
+        quickStructureModal?.addEventListener('click', event => {
+            if (event.target === quickStructureModal) window.closeQuickStructureModal();
+        });
+
+        async function sendQuickCreate(url, payload, button) {
+            button.disabled = true;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    const firstError = data.errors ? Object.values(data.errors).flat()[0] : null;
+                    throw new Error(firstError || data.message || 'Không thể tạo dữ liệu.');
+                }
+                return data;
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        document.getElementById('quickCreateSeason')?.addEventListener('click', async function () {
+            if (!movieSelect?.value) return showQuickMessage('Hãy chọn Movie trước.', true);
+            try {
+                const data = await sendQuickCreate('{{ route('admin.videos.upload.seasons.store') }}', {
+                    movie_id: movieSelect.value,
+                    season_number: document.getElementById('quickSeasonNumber').value,
+                    name: document.getElementById('quickSeasonName').value || null
+                }, this);
+                const option = new Option(
+                    movieSelect.options[movieSelect.selectedIndex].textContent.trim() + ' — ' + data.season.label,
+                    data.season.id
+                );
+                option.dataset.movie = data.season.movie_id;
+                option.dataset.seasonNumber = data.season.season_number;
+                quickEpisodeSeason.add(option);
+                filterQuickSeasons();
+                quickEpisodeSeason.value = String(data.season.id);
+                document.getElementById('quickSeasonName').value = '';
+                showQuickMessage('Đã tạo Season. Bạn có thể tạo Episode bên dưới.');
+            } catch (error) {
+                showQuickMessage(error.message, true);
+            }
+        });
+
+        document.getElementById('quickCreateEpisode')?.addEventListener('click', async function () {
+            if (!movieSelect?.value) return showQuickMessage('Hãy chọn Movie trước.', true);
+            if (!quickEpisodeSeason?.value) return showQuickMessage('Hãy chọn hoặc tạo Season trước.', true);
+            try {
+                const episodeNumber = document.getElementById('quickEpisodeNumber').value;
+                const data = await sendQuickCreate('{{ route('admin.videos.upload.episodes.store') }}', {
+                    movie_id: movieSelect.value,
+                    season_id: quickEpisodeSeason.value,
+                    episode_number: episodeNumber,
+                    name: document.getElementById('quickEpisodeName').value || null,
+                    duration: document.getElementById('quickEpisodeDuration').value || null
+                }, this);
+                const option = new Option(data.episode.label, data.episode.id, true, true);
+                option.dataset.movie = data.episode.movie_id;
+                option.dataset.season = data.episode.season_id;
+                episodeSelect.add(option);
+                episodeSelect.value = String(data.episode.id);
+                document.getElementById('quickEpisodeNumber').value = Number(episodeNumber) + 1;
+                document.getElementById('quickEpisodeName').value = '';
+                document.getElementById('quickEpisodeDuration').value = '';
+                showQuickMessage('Đã tạo và chọn Episode. Đóng cửa sổ để tiếp tục upload video.');
+            } catch (error) {
+                showQuickMessage(error.message, true);
+            }
+        });
 
         const form =
             document.getElementById(
@@ -608,6 +816,7 @@ document.addEventListener(
             );
 
             filterEpisodes();
+            filterQuickSeasons();
         }
 
 
@@ -2043,9 +2252,9 @@ document.addEventListener(
 
 
                                 if (resultMessage) {
-
-                                    resultMessage.innerHTML =
-                                        '<strong>✓ Video + HLS đã được xử lý thành công.</strong>';
+                                    resultMessage.innerHTML = data.local_source_removed === false
+                                        ? '<strong>✓ Video + HLS đã lên cloud.</strong> <span style="color:#f59e0b">Chưa xóa được video gốc trong storage Laravel; hãy kiểm tra quyền ghi/xóa của thư mục storage.</span>'
+                                        : '<strong>✓ Video + HLS đã lên cloud, video gốc đã được xóa khỏi storage Laravel.</strong>';
                                 }
 
 

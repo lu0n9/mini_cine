@@ -318,7 +318,7 @@
         @if($users->hasPages())
 
             <div class="pagination">
-                {{ $users->links() }}
+                {{ $users->links('pagination::custom') }}
             </div>
 
         @endif

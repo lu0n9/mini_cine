@@ -39,12 +39,18 @@ class UserStatisticsController extends Controller
         | PREMIUM
         |--------------------------------------------------------------------------
         |
-        | Chỉ dùng nếu users.role có giá trị "premium".
+        | Chủ gói và tài khoản được chia sẻ có quyền xem Premium.
         |
         */
 
         $premiumUsers = User::query()
-            ->where('role', 'premium')
+            ->where(function ($query) {
+                $query->whereHas('premiumSubscriptions', function ($subscriptionQuery) {
+                    $subscriptionQuery->where('status', 'active')->where('ends_at', '>', now());
+                })->orWhereHas('premiumShares.subscription', function ($subscriptionQuery) {
+                    $subscriptionQuery->where('status', 'active')->where('ends_at', '>', now());
+                });
+            })
             ->count();
 
 

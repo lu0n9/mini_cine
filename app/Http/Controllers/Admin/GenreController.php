@@ -18,8 +18,9 @@ class GenreController extends Controller
     }
 
     public function index(){
-        $genres = $this->crud->all(
+        $genres = $this->crud->paginate(
             Genre::class,
+            perPage: 15,
             withCount: ['movies'],
             orderBy: 'name'
         );

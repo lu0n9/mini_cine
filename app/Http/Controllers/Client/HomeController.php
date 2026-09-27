@@ -9,6 +9,8 @@ use App\Models\Country;
 use App\Models\Person;
 use App\Models\MovieView;
 use App\Models\WatchHistory;
+use App\Models\PremiumPromotion;
+use App\Services\PremiumCouponService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -19,8 +21,34 @@ class HomeController extends Controller
     {
         $continueWatching = collect();
         $user = auth()->user();
+        $activePromoCoupons = collect();
+        $activePromotions = collect();
 
         if ($user) {
+            app(PremiumCouponService::class)->grantEligibleCoupons($user);
+            $activePromoCoupons = $user->premiumCouponGrants()
+                ->with('coupon')
+                ->whereNull('redeemed_at')
+                ->whereNull('reserved_at')
+                ->latest('granted_at')
+                ->get()
+                ->filter(fn ($grant) => $grant->coupon?->isAvailable())
+                ->values();
+
+            $activePromotions = PremiumPromotion::query()
+                ->with('plans')
+                ->where('is_active', true)
+                ->where(function ($query) {
+                    $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+                })
+                ->where(function ($query) {
+                    $query->whereNull('ends_at')->orWhere('ends_at', '>', now());
+                })
+                ->latest()
+                ->get()
+                ->filter(fn ($promotion) => $promotion->isAvailableNow())
+                ->values();
+
             $continueWatching = WatchHistory::where('user_id', auth()->id())
             ->whereNotNull('episode_id')
             ->whereHas('episode')
@@ -183,7 +211,9 @@ class HomeController extends Controller
                 'hasRecommendationData',
                 'genres',
                 'countries',
-                'people'
+                'people',
+                'activePromoCoupons',
+                'activePromotions'
             )
         );
     }

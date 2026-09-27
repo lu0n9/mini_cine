@@ -1,15 +1,48 @@
 @extends('admin.layouts.master')
+
 @section('content')
 <section id="cron" class="page">
-        <div class="page-head"><div><h3>Cron Jobs</h3><p>Tác vụ định kỳ của hệ thống.</p></div></div>
-        <div class="panel"><table>
-          <thead><tr><th>Job</th><th>Lịch</th><th>Lần chạy cuối</th><th>Trạng thái</th><th></th></tr></thead>
-          <tbody>
-            <tr><td>Backup database</td><td>Hằng ngày 02:00</td><td>Hôm nay 02:00</td><td><span class="status">OK</span></td><td><div class="row-actions"><button class="mini" title="Chạy ngay">▶</button></div></td></tr>
-            <tr><td>Update movie metadata</td><td>Mỗi 6 giờ</td><td>4 giờ trước</td><td><span class="status">OK</span></td><td><div class="row-actions"><button class="mini">▶</button></div></td></tr>
-            <tr><td>Generate sitemap</td><td>Hằng ngày 03:00</td><td>Hôm nay 03:00</td><td><span class="status">OK</span></td><td><div class="row-actions"><button class="mini">▶</button></div></td></tr>
-            <tr><td>Clean expired sessions</td><td>Mỗi giờ</td><td>20 phút trước</td><td><span class="status warn">Đang chạy</span></td><td><div class="row-actions"><button class="mini">▶</button></div></td></tr>
-          </tbody>
-        </table></div>
-      </section>
-      @endsection
+    <div class="page-head"><div><h3>Cron Jobs</h3><p>Tác vụ định kỳ của hệ thống.</p></div></div>
+
+    @if (session('success'))
+        <div class="alert alert-success" style="margin-bottom:16px">{{ session('success') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger" style="margin-bottom:16px">{{ session('error') }}</div>
+    @endif
+
+    <div class="panel"><table>
+        <thead><tr><th>Job</th><th>Lịch</th><th>Lần chạy cuối</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody>
+            @foreach ($definitions as $key => $definition)
+                @php($run = $runs->get($key))
+                <tr>
+                    <td>
+                        {{ $definition['name'] }}
+                        @if ($run?->message)<small style="display:block;color:#7b8495;margin-top:3px">{{ $run->message }}</small>@endif
+                    </td>
+                    <td>{{ $definition['schedule'] }}</td>
+                    <td>{{ $run?->last_run_at?->timezone(config('app.timezone'))->diffForHumans() ?? 'Chưa chạy' }}</td>
+                    <td>
+                        @if (!$run)
+                            <span class="status warn">Chưa chạy</span>
+                        @elseif ($run->status === 'success')
+                            <span class="status">OK</span>
+                        @else
+                            <span class="status warn">Lỗi</span>
+                        @endif
+                    </td>
+                    <td>
+                        <div class="row-actions">
+                            <form method="POST" action="{{ route('admin.system.cron.run', $key) }}" onsubmit="return confirm('Chạy tác vụ {{ $definition['name'] }} ngay bây giờ?')">
+                                @csrf
+                                <button class="mini" type="submit" title="Chạy ngay" aria-label="Chạy ngay">▶</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table></div>
+</section>
+@endsection

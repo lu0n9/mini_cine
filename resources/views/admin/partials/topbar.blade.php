@@ -1,4 +1,11 @@
 <header class="topbar">
+      <button type="button" class="icon-btn sidebar-toggle-btn" id="sidebarToggle" aria-label="Đóng/Mở thanh bên" title="Đóng/Mở thanh bên (Ctrl + B)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
       <h2>CineAdmin</h2>
       <div class="search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>

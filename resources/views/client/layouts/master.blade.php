@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" class="dark">
+<html lang="{{ app()->getLocale() }}" class="dark">
 <head>
     @include('client.partials.head')
 </head>

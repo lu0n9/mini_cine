@@ -28,16 +28,21 @@
 
   /* ------------- Layout ------------- */
   .app {
-    display: grid;
-    grid-template-columns: 268px 1fr;
+    display: flex;
     min-height: 100vh;
+    width: 100%;
+    position: relative;
   }
 
   /* ------------- Sidebar ------------- */
   .sidebar {
+    width: 268px;
+    min-width: 268px;
+    max-width: 268px;
+    flex-shrink: 0;
     background: var(--ink);
     color: var(--ink-inv);
-    padding: 22px 14px;
+    padding: 0 14px 22px;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -45,17 +50,37 @@
     top: 0;
     height: 100vh;
     overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.15) transparent;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
   }
   .sidebar::-webkit-scrollbar { width: 8px; }
   .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 8px; }
 
+  /* Desktop collapsed state */
+  .app.sidebar-collapsed .sidebar,
+  .sidebar-is-collapsed .app .sidebar {
+    margin-left: -268px;
+  }
+
+  /* Sidebar Overlay */
+  .sidebar-overlay {
+    display: none;
+  }
+
   .brand {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--ink);
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 6px 8px 20px;
+    padding: 22px 14px 18px;
+    margin: 0 -14px 8px -14px;
     border-bottom: 1px solid rgba(255,255,255,.12);
-    margin-bottom: 8px;
   }
   .brand .logo {
     width: 38px; height: 38px;
@@ -66,8 +91,32 @@
     font-weight: 800; font-size: 20px;
     flex: none;
   }
+  .brand-info {
+    flex: 1;
+    min-width: 0;
+  }
   .brand h1 { font-size: 17px; letter-spacing: .5px; }
   .brand span { font-size: 11px; color: #9a9a9a; letter-spacing: 2px; text-transform: uppercase; }
+
+  .sidebar-collapse-btn {
+    margin-left: auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color: #cfcfcf;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all .15s ease;
+  }
+  .sidebar-collapse-btn:hover {
+    background: rgba(255,255,255,.15);
+    color: #fff;
+    border-color: rgba(255,255,255,.25);
+  }
 
   /* Collapsible groups */
   .group { border: none; }
@@ -111,8 +160,21 @@
   body:has(.page:target) #dashboard { display: none; }
   #dashboard:target { display: block; }
 
-  .sidebar a:target { background: var(--ink-inv); color: var(--ink); }
-  .sidebar a:target .badge { background: rgba(0,0,0,.12); color: #000; }
+  .sidebar a:target,
+  .sidebar .nav-item.active {
+    background: var(--ink-inv) !important;
+    color: var(--ink) !important;
+    font-weight: 600;
+  }
+  .sidebar a:target .badge,
+  .sidebar .nav-item.active .badge {
+    background: rgba(0,0,0,.14) !important;
+    color: #000 !important;
+  }
+  .sidebar .nav-item.active .ic,
+  .sidebar .nav-item.active svg {
+    stroke: var(--ink);
+  }
 
   .sidebar-foot {
     margin-top: 12px;
@@ -120,18 +182,44 @@
     padding: 12px;
     border-top: 1px solid rgba(255,255,255,.12);
   }
-  .sidebar-foot img { width: 36px; height: 36px; border-radius: 999px; object-fit: cover; filter: grayscale(1); }
+  .sidebar-foot img { width: 36px; height: 36px; border-radius: 999px; object-fit: cover; }
   .sidebar-foot .who { font-size: 13px; font-weight: 600; }
   .sidebar-foot .who small { display: block; color: #9a9a9a; font-weight: 400; font-size: 11px; }
 
   /* ------------- Main ------------- */
-  .main { display: flex; flex-direction: column; min-width: 0; }
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    transition: all 0.3s ease;
+  }
 
   .topbar {
     display: flex; align-items: center; gap: 16px;
     padding: 16px 28px;
     border-bottom: 1px solid var(--line);
     position: sticky; top: 0; background: var(--bg); z-index: 5;
+  }
+  /* Nút 3 gạch (sidebar-toggle-btn): Mặc định ẨN khi sidebar đang mở */
+  .sidebar-toggle-btn {
+    display: none;
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  }
+  .sidebar-toggle-btn:hover {
+    color: var(--ink);
+    border-color: #d0d0d0;
+  }
+  .sidebar-toggle-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* Nút 3 gạch CHỈ hiển thị khi ẩn sidebar */
+  .app.sidebar-collapsed .sidebar-toggle-btn,
+  .sidebar-is-collapsed .sidebar-toggle-btn {
+    display: grid;
+    place-items: center;
   }
   .topbar h2 { font-size: 18px; font-weight: 700; }
   .search {
@@ -151,7 +239,37 @@
   }
   .icon-btn:hover { background: var(--panel-2); }
 
-  .content { padding: 28px; }
+  .content {
+    padding: 28px;
+    transition: opacity 0.15s ease;
+  }
+  .content.is-loading {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* ------------- Admin SPA Progress Bar ------------- */
+  .admin-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #3b82f6, #06b6d4, #10b981);
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.7), 0 0 5px rgba(6, 182, 212, 0.5);
+    z-index: 999999;
+    opacity: 0;
+    pointer-events: none;
+    transition: width 0.25s ease, opacity 0.25s ease;
+  }
+  .admin-progress-bar.active {
+    opacity: 1;
+  }
+  .admin-progress-bar.done {
+    width: 100% !important;
+    opacity: 0;
+    transition: width 0.15s ease, opacity 0.3s ease 0.1s;
+  }
 
   .page-head { margin-bottom: 22px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .page-head h3 { font-size: 24px; font-weight: 800; letter-spacing: -.3px; }
@@ -352,12 +470,51 @@
     .poster-grid { grid-template-columns: repeat(3, 1fr); }
   }
   @media (max-width: 760px) {
-    .app { grid-template-columns: 1fr; }
-    .sidebar { position: static; height: auto; }
+    .sidebar {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 280px;
+      max-width: 85vw;
+      height: 100vh;
+      z-index: 1000;
+      transform: translateX(-100%);
+      margin-left: 0 !important;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+    }
+
+    .app.mobile-sidebar-open .sidebar {
+      transform: translateX(0);
+    }
+
+    .sidebar-overlay {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(2px);
+      z-index: 990;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .app.mobile-sidebar-open .sidebar-overlay {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    body.mobile-sidebar-active {
+      overflow: hidden;
+    }
+
     .poster-grid { grid-template-columns: repeat(2, 1fr); }
     .form-grid, .form-grid.three { grid-template-columns: 1fr; }
     .split { grid-template-columns: 1fr; }
     .search { display: none; }
+    .sidebar-toggle-btn { display: grid !important; place-items: center; }
   }
 
   .sidebar-foot {
@@ -404,6 +561,74 @@
 .logout-btn:hover {
   background-color: #f5f5f5;
 }
+
+.profile-menu-btn {
+  display: block;
+  width: 100%;
+  padding: 11px 15px;
+  border: 0;
+  background: #fff;
+  color: #252433;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.profile-menu-btn:hover { background: #f5f5f8; }
+.dropdown-menu form { margin: 0; }
+
+.admin-profile-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.admin-profile-overlay {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(8, 9, 16, .72);
+  backdrop-filter: blur(5px);
+  cursor: default;
+}
+.admin-profile-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 480px);
+  max-height: min(90vh, 720px);
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid rgba(167, 139, 250, .28);
+  border-radius: 16px;
+  background: #171720;
+  color: #f4f2fb;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .45);
+}
+.admin-profile-head { display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:20px; }
+.admin-profile-head h2 { margin:0;font-size:20px; }
+.admin-profile-head p { margin:6px 0 0;color:#aaa8b7;font-size:13px; }
+.admin-profile-close { border:0;background:transparent;color:#aaa8b7;font-size:28px;line-height:1;cursor:pointer; }
+.admin-profile-form { display:grid;gap:16px; }
+.admin-profile-avatar-field { display:grid;justify-items:center;gap:10px;padding:8px 0; }
+.admin-profile-avatar-field img { width:92px;height:92px;border-radius:50%;object-fit:cover;border:2px solid #9565e9;background:#242431; }
+.admin-profile-upload { display:inline-flex;align-items:center;justify-content:center;padding:8px 13px;border-radius:8px;background:#2c2938;color:#e9dcff;font-size:13px;cursor:pointer; }
+.admin-profile-upload input { position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0); }
+.admin-profile-avatar-field small { color:#92909f;font-size:12px; }
+.admin-profile-field { display:grid;gap:7px;color:#d9d7e2;font-size:13px; }
+.admin-profile-field input { width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #383744;border-radius:8px;background:#101017;color:#f7f5ff;font:inherit; }
+.admin-profile-field input:focus { outline:2px solid rgba(167,139,250,.5);border-color:#9565e9; }
+.admin-profile-field input[readonly] { color:#92909f; }
+.admin-profile-actions { display:flex;justify-content:flex-end;gap:9px;margin-top:4px; }
+.admin-profile-cancel,.admin-profile-save { padding:9px 14px;border:0;border-radius:8px;font:inherit;cursor:pointer; }
+.admin-profile-cancel { background:#292832;color:#ddd; }
+.admin-profile-save { background:#8b5cf6;color:#fff;font-weight:600; }
+.admin-profile-success,.admin-profile-error { padding:10px 12px;margin-bottom:14px;border-radius:8px;font-size:13px; }
+.admin-profile-success { background:rgba(16,185,129,.12);color:#6ee7b7; }
+.admin-profile-error { background:rgba(239,68,68,.12);color:#fca5a5; }
+body.admin-profile-open { overflow:hidden; }
+@media(max-width:520px) { .admin-profile-dialog{padding:19px;} }
 /* =========================================================
    ADMIN SELECT
 ========================================================= */
@@ -2564,4 +2789,342 @@
         opacity: 1;
     }
 
+}
+/* =========================================================
+   MINI CINE - PAGE CREATE / EDIT
+   Background trắng - Border đen
+   Giữ nguyên bố cục
+   ========================================================= */
+
+.page-editor-panel {
+    padding: 28px 30px;
+    border: 1px solid #222;
+    border-radius: 14px;
+
+    background: #fff;
+
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================
+   FORM GROUP
+   ========================= */
+
+.page-editor-panel .form-group {
+    margin-bottom: 20px;
+}
+
+.page-editor-panel .form-group > label {
+    display: block;
+    margin-bottom: 8px;
+
+    color: #222;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* =========================
+   INPUT / TEXTAREA / SELECT
+   ========================= */
+
+.page-editor-panel input[type="text"],
+.page-editor-panel input[type="datetime-local"],
+.page-editor-panel textarea,
+.page-editor-panel select {
+    width: 100%;
+    box-sizing: border-box;
+
+    min-height: 44px;
+    padding: 10px 13px;
+
+    border: 1px solid #222;
+    border-radius: 8px;
+
+    outline: none;
+
+    background: #fff;
+    color: #222;
+
+    font-family: inherit;
+    font-size: 13px;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.page-editor-panel textarea {
+    min-height: 105px;
+    resize: vertical;
+    line-height: 1.65;
+}
+
+/* Placeholder */
+
+.page-editor-panel input::placeholder,
+.page-editor-panel textarea::placeholder {
+    color: #888;
+}
+
+/* Select */
+
+.page-editor-panel select {
+    cursor: pointer;
+}
+
+.page-editor-panel select option {
+    background: #fff;
+    color: #222;
+}
+
+/* =========================
+   FOCUS
+   ========================= */
+
+.page-editor-panel input[type="text"]:focus,
+.page-editor-panel input[type="datetime-local"]:focus,
+.page-editor-panel textarea:focus,
+.page-editor-panel select:focus {
+    border-color: #000;
+
+    background: #fff;
+
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================
+   ERROR
+   ========================= */
+
+.page-editor-panel .field-error {
+    margin-top: 6px;
+
+    color: #d93025;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* =========================
+   SEO
+   ========================= */
+
+.page-editor-panel hr {
+    margin: 30px 0 24px;
+
+    border: 0;
+    border-top: 1px solid #222;
+}
+
+.page-editor-panel h4 {
+    margin: 0 0 20px;
+
+    color: #111;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* =========================
+   BUTTON
+   ========================= */
+
+.page-editor-panel .form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    margin-top: 28px;
+    padding-top: 22px;
+
+    border-top: 1px solid #222;
+}
+
+.page-editor-panel .form-actions .btn,
+.page-editor-panel .form-actions .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 40px;
+    padding: 0 17px;
+
+    border-radius: 8px;
+
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.15s ease;
+}
+
+/* Lưu trang */
+
+.page-editor-panel .form-actions .btn {
+    border: 1px solid #111;
+
+    background: #111;
+    color: #fff;
+}
+
+.page-editor-panel .form-actions .btn:hover {
+    background: #000;
+    transform: translateY(-1px);
+}
+
+/* Hủy */
+
+.page-editor-panel .form-actions .btn-secondary {
+    border: 1px solid #222;
+
+    background: #fff;
+    color: #222;
+}
+
+.page-editor-panel .form-actions .btn-secondary:hover {
+    background: #f3f3f3;
+    color: #000;
+
+    transform: translateY(-1px);
+}
+
+/* =========================
+   CKEDITOR
+   ========================= */
+
+.page-editor-panel .ck-editor {
+    width: 100%;
+    border-radius: 9px;
+    overflow: hidden;
+}
+
+/* Toolbar */
+
+.page-editor-panel .ck-editor__top .ck-toolbar {
+    min-height: 43px;
+
+    padding: 5px 7px;
+
+    border: 1px solid #222 !important;
+    border-bottom: 0 !important;
+
+    border-radius: 9px 9px 0 0 !important;
+
+    background: #f8f8f8 !important;
+}
+
+/* Toolbar buttons */
+
+.page-editor-panel .ck-button {
+    border-radius: 5px !important;
+
+    color: #222 !important;
+
+    transition: background 0.15s ease;
+}
+
+.page-editor-panel .ck-button:hover {
+    background: #e9e9e9 !important;
+}
+
+/* Editor */
+
+.page-editor-panel .ck-editor__main {
+    border-radius: 0 0 9px 9px;
+}
+
+.page-editor-panel .ck-editor__editable {
+    min-height: 340px;
+
+    padding: 17px 19px !important;
+
+    border: 1px solid #222 !important;
+
+    background: #fff !important;
+
+    color: #222 !important;
+
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.75;
+
+    box-shadow: none !important;
+}
+
+/* CKEditor focus */
+
+.page-editor-panel .ck-editor__editable.ck-focused {
+    border-color: #000 !important;
+
+    box-shadow:
+        0 0 0 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Nội dung */
+
+.page-editor-panel .ck-content h1,
+.page-editor-panel .ck-content h2,
+.page-editor-panel .ck-content h3 {
+    color: #111;
+}
+
+.page-editor-panel .ck-content p {
+    color: #333;
+    line-height: 1.75;
+}
+
+.page-editor-panel .ck-content a {
+    color: #333;
+    text-decoration: underline;
+}
+
+.page-editor-panel .ck-content blockquote {
+    margin-left: 0;
+
+    padding-left: 14px;
+
+    border-left: 3px solid #222;
+
+    color: #555;
+}
+
+/* =========================
+   MOBILE
+   ========================= */
+
+@media (max-width: 768px) {
+
+    .page-editor-panel {
+        padding: 20px;
+        border-radius: 12px;
+    }
+
+    .page-editor-panel .form-group {
+        margin-bottom: 17px;
+    }
+
+    .page-editor-panel input[type="text"],
+    .page-editor-panel input[type="datetime-local"],
+    .page-editor-panel textarea,
+    .page-editor-panel select {
+        min-height: 42px;
+        font-size: 13px;
+    }
+
+    .page-editor-panel textarea {
+        min-height: 100px;
+    }
+
+    .page-editor-panel .ck-editor__editable {
+        min-height: 280px;
+        padding: 14px !important;
+    }
 }

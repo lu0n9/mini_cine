@@ -209,18 +209,18 @@
       </form>
 
 
-      {{-- Chuyển sang Đăng ký --}}
+      {{-- Chuyển sang đăng nhập --}}
 
       <div class="auth-card__footer">
 
         <p>
-          Chưa có tài khoản?
+          Đã có tài khoản?
 
           <a
-            href="{{ route('register') }}"
+            href="{{ route('login') }}"
             class="auth-link auth-link--highlight"
           >
-            Đăng ký ngay
+            Đăng nhập
           </a>
         </p>
 

@@ -7,11 +7,42 @@ use App\Models\Admin;
 use App\Models\AdminRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
+    public function updateProfile(Request $request)
+    {
+        $admin = auth('admin')->user();
+        abort_unless($admin, 403);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ], [
+            'name.required' => 'Vui lòng nhập tên hiển thị.',
+            'avatar.image' => 'Avatar phải là file ảnh hợp lệ.',
+            'avatar.mimes' => 'Avatar chỉ hỗ trợ JPG, PNG hoặc WEBP.',
+            'avatar.max' => 'Avatar không được vượt quá 2 MB.',
+        ]);
+
+        $previousAvatar = $admin->avatar;
+        $data = ['name' => trim($validated['name'])];
+        if ($request->hasFile('avatar')) {
+            $data['avatar'] = $request->file('avatar')->store('admin-avatars', 'public');
+        }
+
+        $admin->update($data);
+
+        if (isset($data['avatar']) && $previousAvatar && str_starts_with($previousAvatar, 'admin-avatars/')) {
+            Storage::disk('public')->delete($previousAvatar);
+        }
+
+        return back()->with('profile_success', 'Đã cập nhật thông tin tài khoản quản trị.');
+    }
+
     /**
      * Danh sách Admin
      */

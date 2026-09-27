@@ -178,19 +178,56 @@
         <div>
           <section class="block" aria-labelledby="danh-sach-tap">
             <h2 class="block__title" id="danh-sach-tap">Danh sách tập</h2>
-            <div class="episodes-list" style="display: flex; gap: 10px; flex-wrap: wrap;">
-              @foreach($movie->episodes as $episode)
-                  <a
-                      class="btn btn--ghost btn--sm btn--episode"
-                      href="{{ route('movies.watch', [
-                          'slug' => $movie->slug,
-                          'ep' => $episode->episode_number
-                      ]) }}"
-                  >
-                      Tập {{ $episode->episode_number }}
-                  </a>
-              @endforeach
-            </div>
+            @forelse($movie->seasons as $season)
+                <div class="episode-season-group" style="margin:0 0 20px;padding:16px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:12px;background:rgba(255,255,255,.025)">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+                        <div>
+                            <h3 style="margin:0;font-size:18px">{{ $season->name ?: 'Season ' . $season->season_number }}</h3>
+                            <small style="color:var(--muted,#9ca3af)">Season {{ $season->season_number }}</small>
+                        </div>
+                        <span class="tag">{{ $season->episodes->count() }} tập</span>
+                    </div>
+                    @if($season->episodes->isNotEmpty())
+                        <div style="display:flex;gap:10px;flex-wrap:wrap">
+                            @foreach($season->episodes as $episode)
+                                <a class="btn btn--ghost btn--sm btn--episode"
+                                   href="{{ route('movies.watch', ['slug' => $movie->slug, 'episode' => $episode->id]) }}"
+                                   title="Season {{ $season->season_number }} · Tập {{ $episode->episode_number }}">
+                                    Tập {{ $episode->episode_number }}
+                                    @if($episode->name && $episode->name !== 'Tập ' . $episode->episode_number)
+                                        <span style="margin-left:5px;opacity:.75">· {{ $episode->name }}</span>
+                                    @endif
+                                </a>
+                            @endforeach
+                        </div>
+                    @else
+                        <p style="margin:0;color:var(--muted,#9ca3af)">Season này chưa có tập.</p>
+                    @endif
+                </div>
+            @empty
+                @if($movie->episodes->whereNull('season_id')->isNotEmpty())
+                    <div class="episode-season-group" style="margin:0 0 20px;padding:16px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:12px;background:rgba(255,255,255,.025)">
+                        <h3 style="margin:0 0 12px;font-size:18px">Tập phim</h3>
+                        <div style="display:flex;gap:10px;flex-wrap:wrap">
+                            @foreach($movie->episodes->whereNull('season_id')->sortBy('episode_number') as $episode)
+                                <a class="btn btn--ghost btn--sm btn--episode" href="{{ route('movies.watch', ['slug' => $movie->slug, 'episode' => $episode->id]) }}">Tập {{ $episode->episode_number }}</a>
+                            @endforeach
+                        </div>
+                    </div>
+                @else
+                    <p>Phim chưa có Season hoặc Episode.</p>
+                @endif
+            @endforelse
+            @if($movie->seasons->isNotEmpty() && $movie->episodes->whereNull('season_id')->isNotEmpty())
+                <div class="episode-season-group" style="margin:0 0 20px;padding:16px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:12px;background:rgba(255,255,255,.025)">
+                    <h3 style="margin:0 0 12px;font-size:18px">Tập chưa xếp Season</h3>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap">
+                        @foreach($movie->episodes->whereNull('season_id')->sortBy('episode_number') as $episode)
+                            <a class="btn btn--ghost btn--sm btn--episode" href="{{ route('movies.watch', ['slug' => $movie->slug, 'episode' => $episode->id]) }}">Tập {{ $episode->episode_number }}</a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
           </section>
           <!-- Nội dung phim -->
           <section class="block" aria-labelledby="noi-dung">

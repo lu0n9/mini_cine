@@ -263,7 +263,7 @@
     {{-- PAGINATION --}}
     @if($watchHistories->hasPages())
 
-        <div style="margin-top:20px;">
+        <div class="pagination">
             {{ $watchHistories->links('pagination::custom') }}
         </div>
 

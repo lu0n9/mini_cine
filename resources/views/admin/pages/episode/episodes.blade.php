@@ -15,12 +15,30 @@
         </a>
     </div>
 
-    <div class="table-tools">
-        <span class="filter on">Tất cả</span>
-        <span class="filter">Mới</span>
-        <span class="filter">VIP</span>
-        <span class="filter">Ẩn</span>
-    </div>
+    <form method="GET" action="{{ route('admin.episodes') }}" class="table-tools">
+        <span class="mini-search">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Tìm tập hoặc phim...">
+        </span>
+        <select class="filter" name="movie_id" aria-label="Lọc theo phim">
+            <option value="">Tất cả phim</option>
+            @foreach($movies as $movie)
+                <option value="{{ $movie->id }}" @selected((string) request('movie_id') === (string) $movie->id)>{{ $movie->title }}</option>
+            @endforeach
+        </select>
+        <select class="filter" name="season_id" aria-label="Lọc theo season">
+            <option value="">Tất cả season</option>
+            @foreach($seasons as $season)
+                <option value="{{ $season->id }}" @selected((string) request('season_id') === (string) $season->id)>{{ $season->movie->title ?? 'Phim' }} · {{ $season->name ?: 'Season ' . $season->season_number }}</option>
+            @endforeach
+        </select>
+        <select class="filter" name="published" aria-label="Lọc trạng thái xuất bản">
+            <option value="">Mọi trạng thái</option>
+            <option value="1" @selected(request('published') === '1')>Đã xuất bản</option>
+            <option value="0" @selected(request('published') === '0')>Chưa xuất bản</option>
+        </select>
+        <button type="submit" class="filter on">Lọc</button>
+        <a href="{{ route('admin.episodes') }}" class="filter">Xóa lọc</a>
+    </form>
 
     <div class="panel">
         <table>
@@ -173,6 +191,12 @@
 
         </table>
     </div>
+
+    @if($episodes->hasPages())
+        <div class="pagination">
+            {{ $episodes->links('pagination::custom') }}
+        </div>
+    @endif
 
 </section>
 

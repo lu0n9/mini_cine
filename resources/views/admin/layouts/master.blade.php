@@ -4,7 +4,9 @@
 @include('admin.partials.head')
 </head>
 <body>
+<div id="adminProgressBar" class="admin-progress-bar"></div>
 <div class="app">
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
   <!-- ============ SIDEBAR ============ -->
   @include('admin.partials.sidebar')
@@ -20,5 +22,6 @@
     @include('admin.partials.footer')
   </div>
 </div>
+@stack('scripts')
 </body>
 </html>

@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use App\Http\Middleware\CheckUserBan;
+use App\Http\Middleware\ApplySystemSettings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,7 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'user.ban' => CheckUserBan::class,
             'admin.permission' => \App\Http\Middleware\AdminPermission::class,
+            'admin.activity-log' => \App\Http\Middleware\RecordAdminActivity::class,
         ]);
+        $middleware->web(append: [ApplySystemSettings::class]);
         // 1. Khi CHƯA đăng nhập mà vào route bảo vệ -> chuyển về trang login tương ứng
         $middleware->redirectGuestsTo(function (Request $request) {
             if ($request->is('admin*')) {

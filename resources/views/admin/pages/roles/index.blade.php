@@ -141,6 +141,12 @@
 
     </div>
 
+    @if($roles->hasPages())
+        <div class="pagination">
+            {{ $roles->links('pagination::custom') }}
+        </div>
+    @endif
+
 </section>
 
 @endsection

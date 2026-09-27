@@ -101,9 +101,11 @@
     </div>
 
 
-    <div style="margin-top:20px;">
-        {{ $tags->links() }}
-    </div>
+    @if($tags->hasPages())
+        <div class="pagination">
+            {{ $tags->links('pagination::custom') }}
+        </div>
+    @endif
 
 </section>
 

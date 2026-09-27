@@ -1,5 +1,72 @@
 @extends('client.layouts.master')
 @section('content')
+@if ($activePromoCoupons->isNotEmpty() || $activePromotions->isNotEmpty())
+    <section class="promo-marquee" aria-label="Ưu đãi dành riêng cho bạn">
+        <div class="promo-marquee__track">
+            @foreach ([false, true] as $duplicate)
+                <div class="promo-marquee__group" @if($duplicate) aria-hidden="true" inert @endif>
+                    @php
+                        $tickerLinkUsed = false;
+                    @endphp
+                    @foreach ($activePromotions as $promotion)
+                        @php
+                            $promotionContent = $promotion->message
+                                . ' · Giảm '
+                                . ($promotion->discount_type === 'percentage' ? $promotion->discount_value . '%' : '₫' . number_format($promotion->discount_value, 0, ',', '.'))
+                                . ' cho '
+                                . $promotion->plans->pluck('name')->join(', ');
+                            $isFirstTickerItem = !$tickerLinkUsed;
+                            $isLinkedTickerItem = !$duplicate && $isFirstTickerItem;
+                        @endphp
+                        @if ($isLinkedTickerItem)
+                            <a class="promo-marquee__item" href="{{ route('premium.index', ['promotion' => $promotion->id]) }}" title="{{ $promotionContent }}">
+                        @else
+                            <span class="promo-marquee__item" title="{{ $promotionContent }}">
+                        @endif
+                            <span class="promo-marquee__gift" aria-hidden="true">✦</span>
+                            <strong>{{ $promotion->title }}</strong>
+                            <span>{{ $promotionContent }}</span>
+                            @if ($isFirstTickerItem)<span class="promo-marquee__use">Xem gói ưu đãi →</span>@endif
+                        @if ($isLinkedTickerItem)
+                            </a>
+                        @else
+                            </span>
+                        @endif
+                        @if ($isFirstTickerItem)
+                            @php $tickerLinkUsed = true; @endphp
+                        @endif
+                    @endforeach
+                    @foreach ($activePromoCoupons as $grant)
+                        @php
+                            $coupon = $grant->coupon;
+                            $isFirstTickerItem = !$tickerLinkUsed;
+                            $isLinkedTickerItem = !$duplicate && $isFirstTickerItem;
+                        @endphp
+                        @if ($isLinkedTickerItem)
+                            <a class="promo-marquee__item" href="{{ route('premium.index', ['coupon' => $coupon->code]) }}" title="{{ $coupon->description ?: $coupon->title }}">
+                        @else
+                            <span class="promo-marquee__item" title="{{ $coupon->description ?: $coupon->title }}">
+                        @endif
+                            <span class="promo-marquee__gift" aria-hidden="true">✦</span>
+                            <strong>{{ $coupon->title }}</strong>
+                            <span>Giảm {{ $coupon->discount_type === 'percentage' ? $coupon->discount_value . '%' : '₫' . number_format($coupon->discount_value, 0, ',', '.') }}</span>
+                            <span class="promo-marquee__code">Mã: {{ $coupon->code }}</span>
+                            @if ($isFirstTickerItem)<span class="promo-marquee__use">Dùng ưu đãi →</span>@endif
+                        @if ($isLinkedTickerItem)
+                            </a>
+                        @else
+                            </span>
+                        @endif
+                        @if ($isFirstTickerItem)
+                            @php $tickerLinkUsed = true; @endphp
+                        @endif
+                    @endforeach
+                </div>
+            @endforeach
+        </div>
+    </section>
+@endif
+
     <main>
       <!-- ================= HERO ================= -->
         @if ($proposeMovie)
@@ -89,7 +156,7 @@
                                     Xem ngay
                                 </a>
 
-                                @auth
+                                @if (auth()->check())
                                     @php
                                         $isFavorited = $proposeMovie->favorites
                                             ->where('user_id', auth()->id())
@@ -126,8 +193,7 @@
                                         </span>
                                     </button>
 
-                                    <p id="favorite-message" style="display: none;">
-                                </p>
+                                    <p id="favorite-message" style="display: none;"></p>
                                 @else
                                     <a
                                         class="btn btn--ghost"
@@ -147,7 +213,7 @@
 
                                         Danh sách của tôi
                                     </a>
-                                @endauth
+                                @endif
 
                                 @if ($proposeMovie->trailer_url)
                                     <a
@@ -195,7 +261,7 @@
                     @endphp
 
                     <li class="resume">
-                        <a href="{{ route('movies.watch', ['slug' => $movie->slug, 'ep' => $episode->episode_number]) }}">
+                        <a href="{{ route('movies.watch', ['slug' => $movie->slug, 'episode' => $episode->id]) }}">
                             <div class="resume__thumb">
                                 <img
                                     src="{{ asset('Storage/'. $movie->backdrop ?? $movie->poster) }}"
@@ -723,5 +789,3 @@
        
 </main>
 @endsection
-
-

@@ -1,10 +1,15 @@
-<aside class="sidebar">
+<aside class="sidebar" id="adminSidebar">
     <div class="brand">
       <div class="logo">C</div>
-      <div>
+      <div class="brand-info">
         <h1>CineAdmin</h1>
         <span>Streaming</span>
       </div>
+      <!-- <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Thu gọn thanh bên" title="Thu gọn (Ctrl + B)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
+      </button> -->
     </div>
 
     <a href="{{ route('admin.dashboard') }}" class="nav-item solo">
@@ -48,6 +53,7 @@
       <a href="{{ route('admin.people') }}" class="nav-item">Diễn viên, đạo diễn</a>
       <a href="{{ route('admin.content.tags') }}" class="nav-item">Tags</a>
       <a href="{{ route('admin.collections') }}" class="nav-item">Collections</a>
+      <a href="{{ route('admin.news.index') }}" class="nav-item">Tin tức</a>
     </details>
 
     <details class="group">
@@ -93,10 +99,54 @@
         Giao diện
         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
       </summary>
-      <a href="{{ route('admin.interface.homepage') }}" class="nav-item">Homepage</a>
+      <a href="{{ route('admin.news.index') }}" class="nav-item">News</a>
       <a href="{{ route('admin.interface.banners') }}" class="nav-item">Banners</a>
       <a href="{{ route('admin.menus.index') }}" class="nav-item">Menus</a>
-      <a href="{{ route('admin.interface.pages') }}" class="nav-item">Pages</a>
+      <a href="{{ route('admin.pages.index') }}" class="nav-item">Pages</a>
+    </details>
+    <details class="group">
+        <summary>
+            <svg class="gic" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+                <path d="M8 9h8M8 13h5"/>
+            </svg>
+
+            Forum
+
+            <svg class="chev" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="m9 6 6 6-6 6"/>
+            </svg>
+        </summary>
+
+        <a
+            href="{{ route('admin.forum.index') }}"
+            class="nav-item {{ request()->routeIs('admin.forum.index') ? 'active' : '' }}"
+        >
+            Tổng quan
+        </a>
+
+        <a
+            href="{{ route('admin.forum.categories') }}"
+            class="nav-item {{ request()->routeIs('admin.forum.categories*') ? 'active' : '' }}"
+        >
+            Danh mục
+        </a>
+
+        <a
+            href="{{ route('admin.forum.posts') }}"
+            class="nav-item {{ request()->routeIs('admin.forum.posts*') ? 'active' : '' }}"
+        >
+            Bài viết
+        </a>
+
+        <a
+            href="{{ route('admin.forum.comments') }}"
+            class="nav-item {{ request()->routeIs('admin.forum.comments*') ? 'active' : '' }}"
+        >
+            Bình luận
+        </a>
     </details>
 
     <details class="group">
@@ -129,6 +179,7 @@
       <a href="{{ route('admin.premium.subscriptions') }}" class="nav-item">Subscriptions</a>
       <a href="{{ route('admin.premium.transactions') }}" class="nav-item">Transactions</a>
       <a href="{{ route('admin.premium.coupons') }}" class="nav-item">Coupons</a>
+      <a href="{{ route('admin.premium.promotions') }}" class="nav-item">Khuyến mại</a>
     </details>
 
     <details class="group">
@@ -145,21 +196,75 @@
       <a href="{{ route('admin.system.api') }}" class="nav-item">API</a>
     </details>
 
-    <a href="{{ route('admin.setting.index') }}" class="nav-item solo">
+    <!-- <a href="{{ route('admin.setting.index') }}" class="nav-item solo">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 2.6 7"/></svg>
       Cài đặt
-    </a>
+    </a> -->
 
-    <div class="sidebar-foot" id="userMenuToggle">
-      <img src="/posters/silent-echo.png" alt="Ảnh đại diện quản trị viên" />
-      <div class="who">Luong Tran<small>Super Admin</small></div>
-      
-      <!-- Thêm menu dropdown chứa nút đăng xuất -->
-      <div class="dropdown-menu" id="logoutDropdown">
-        <form action="{{Route('admin.logout')}}" method="post">
+    @php
+      $sidebarAdmin = auth('admin')->user();
+      $sidebarAdminRoles = $sidebarAdmin?->roles()->where('is_active', true)->pluck('name')->implode(', ');
+      $sidebarAdminAvatar = $sidebarAdmin?->avatar
+          ? asset('storage/' . $sidebarAdmin->avatar)
+          : asset('posters/silent-echo.png');
+    @endphp
+    <div class="sidebar-foot" id="userMenuToggle" aria-haspopup="true" aria-expanded="false" tabindex="0">
+      <img src="{{ $sidebarAdminAvatar }}" alt="Ảnh đại diện quản trị viên" />
+      <div class="who">{{ $sidebarAdmin?->name ?? 'Admin' }}<small>{{ $sidebarAdminRoles ?: 'Quản trị viên' }}</small></div>
+      <div class="dropdown-menu" id="logoutDropdown" role="menu">
+        <button type="button" class="profile-menu-btn" id="adminProfileOpen" role="menuitem">Thông tin tài khoản</button>
+        <form action="{{ route('admin.logout') }}" method="POST">
           @csrf
-          <button class="logout-btn">Đăng xuất</button>
+          <button type="submit" class="logout-btn" role="menuitem">Đăng xuất</button>
         </form>
       </div>
     </div>
   </aside>
+
+  <div class="admin-profile-modal" id="adminProfileModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="adminProfileTitle">
+    <button type="button" class="admin-profile-overlay" data-profile-close aria-label="Đóng cửa sổ"></button>
+    <div class="admin-profile-dialog">
+      <div class="admin-profile-head">
+        <div>
+          <h2 id="adminProfileTitle">Thông tin admin</h2>
+          <p>Cập nhật tên hiển thị và ảnh đại diện.</p>
+        </div>
+        <button type="button" class="admin-profile-close" data-profile-close aria-label="Đóng">&times;</button>
+      </div>
+
+      @if (session('profile_success'))
+        <div class="admin-profile-success">{{ session('profile_success') }}</div>
+      @endif
+      @if ($errors->has('name') || $errors->has('avatar'))
+        <div class="admin-profile-error">
+          @if ($errors->has('name'))<div>{{ $errors->first('name') }}</div>@endif
+          @if ($errors->has('avatar'))<div>{{ $errors->first('avatar') }}</div>@endif
+        </div>
+      @endif
+
+      <form action="{{ route('admin.profile.update') }}" method="POST" enctype="multipart/form-data" class="admin-profile-form">
+        @csrf
+        <input type="hidden" name="profile_submission" value="1">
+        <div class="admin-profile-avatar-field">
+          <img id="adminAvatarPreview" src="{{ $sidebarAdminAvatar }}" alt="Xem trước ảnh đại diện">
+          <label class="admin-profile-upload">
+            Chọn ảnh mới
+            <input type="file" name="avatar" id="adminAvatarInput" accept="image/jpeg,image/png,image/webp">
+          </label>
+          <small>JPG, PNG hoặc WEBP · tối đa 2 MB</small>
+        </div>
+        <label class="admin-profile-field">
+          <span>Tên hiển thị</span>
+          <input type="text" name="name" value="{{ old('name', $sidebarAdmin?->name) }}" maxlength="255" required>
+        </label>
+        <label class="admin-profile-field">
+          <span>Email tài khoản</span>
+          <input type="email" value="{{ $sidebarAdmin?->email }}" readonly>
+        </label>
+        <div class="admin-profile-actions">
+          <button type="button" class="admin-profile-cancel" data-profile-close>Hủy</button>
+          <button type="submit" class="admin-profile-save">Lưu thay đổi</button>
+        </div>
+      </form>
+    </div>
+  </div>

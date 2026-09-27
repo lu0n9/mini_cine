@@ -3,13 +3,19 @@
     <div class="footer__grid">
         <div class="footer__about">
         <a class="brand" href="/">
-            <span class="brand__mark" aria-hidden="true">HA</span>
-            <span class="brand__name">Hắc Ảnh</span>
+            <span class="brand__mark" aria-hidden="true">{{ mb_strtoupper(mb_substr($systemSettings->site_name, 0, 2)) }}</span>
+            <span class="brand__name">{{ $systemSettings->site_name }}</span>
         </a>
         <p>
             Nền tảng xem phim trực tuyến với kho phim lẻ, phim bộ và phim
             chiếu rạp chất lượng 4K HDR, phụ đề Việt cập nhật mỗi ngày.
         </p>
+        @if($systemSettings->contact_email)
+            <p><a href="mailto:{{ $systemSettings->contact_email }}">{{ $systemSettings->contact_email }}</a></p>
+        @endif
+        @if($systemSettings->contact_hotline)
+            <p><a href="tel:{{ preg_replace('/[^0-9+]/', '', $systemSettings->contact_hotline) }}">{{ $systemSettings->contact_hotline }}</a></p>
+        @endif
         </div>
 
         @foreach($footerMenus as $menu)
@@ -52,8 +58,8 @@
     </div>
 
     <div class="footer__bottom">
-        <p>© 2026 Hắc Ảnh. Mọi hình ảnh chỉ dùng cho mục đích minh hoạ.</p>
-        <p>Việt Nam · Tiếng Việt</p>
+        <p>© {{ now()->year }} {{ $systemSettings->site_name }}. Mọi hình ảnh chỉ dùng cho mục đích minh hoạ.</p>
+        <p>{{ $systemSettings->timezone }} · Tiếng Việt</p>
     </div>
     </div>
      <nav class="mobile-bottom-nav" aria-label="Điều hướng mobile">

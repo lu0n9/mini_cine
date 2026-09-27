@@ -17,7 +17,7 @@ class PeopleController extends Controller
     {
         $people = Person::withCount('movies')
             ->orderBy('name')
-            ->get();
+            ->paginate(15);
 
         return view(
             'admin.pages.people.people',

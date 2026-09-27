@@ -15,19 +15,55 @@ class SubtitleController extends Controller
     /**
      * Danh sách subtitle
      */
-    public function index()
+    public function index(Request $request)
     {
-        $subtitles = Subtitle::with([
+        $query = Subtitle::with([
             'episode.movie',
             'episode.season',
-        ])
-            ->orderBy('episode_id')
+        ]);
+
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $query->where(function ($subtitleQuery) use ($search) {
+                $subtitleQuery->where('language', 'like', "%{$search}%")
+                    ->orWhere('label', 'like', "%{$search}%")
+                    ->orWhereHas('episode', function ($episodeQuery) use ($search) {
+                        $episodeQuery->where('episode_number', 'like', "%{$search}%")
+                            ->orWhere('name', 'like', "%{$search}%")
+                            ->orWhereHas('movie', function ($movieQuery) use ($search) {
+                                $movieQuery->where('title', 'like', "%{$search}%");
+                            });
+                    });
+            });
+        }
+
+        if ($request->filled('movie_id')) {
+            $query->whereHas('episode', fn ($episodeQuery) => $episodeQuery->where('movie_id', $request->input('movie_id')));
+        }
+
+        if ($request->filled('language')) {
+            $query->where('language', $request->input('language'));
+        }
+
+        if ($request->input('active') === '1' || $request->input('active') === '0') {
+            $query->where('is_active', $request->input('active') === '1');
+        }
+
+        if ($request->input('default') === '1' || $request->input('default') === '0') {
+            $query->where('is_default', $request->input('default') === '1');
+        }
+
+        $subtitles = $query->orderBy('episode_id')
             ->orderBy('language')
-            ->get();
+            ->paginate(15)
+            ->withQueryString();
+
+        $movies = Movie::orderBy('title')->get(['id', 'title']);
+        $languages = Subtitle::query()->whereNotNull('language')->distinct()->orderBy('language')->pluck('language');
 
         return view(
             'admin.pages.subtitle.subtitles',
-            compact('subtitles')
+            compact('subtitles', 'movies', 'languages')
         );
     }
 

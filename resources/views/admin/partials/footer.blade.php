@@ -36,18 +36,172 @@
   <script>
     const userMenuToggle = document.getElementById('userMenuToggle');
     const logoutDropdown = document.getElementById('logoutDropdown');
+    const adminProfileOpen = document.getElementById('adminProfileOpen');
+    const adminProfileModal = document.getElementById('adminProfileModal');
+    const adminAvatarInput = document.getElementById('adminAvatarInput');
+    const adminAvatarPreview = document.getElementById('adminAvatarPreview');
 
-    // Bấm vào sidebar-foot thì ẩn/hiện menu
-    userMenuToggle.addEventListener('click', function(e) {
-    e.stopPropagation(); // Ngăn sự kiện nổi bọt
-    logoutDropdown.classList.toggle('active');
+    if (userMenuToggle && logoutDropdown) {
+        userMenuToggle.addEventListener('click', function (event) {
+            if (event.target.closest('.dropdown-menu')) return;
+            event.stopPropagation();
+            const isOpen = logoutDropdown.classList.toggle('active');
+            userMenuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        userMenuToggle.addEventListener('keydown', function (event) {
+            if (event.target !== userMenuToggle || !['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            userMenuToggle.click();
+        });
+
+        document.addEventListener('click', function () {
+            logoutDropdown.classList.remove('active');
+            userMenuToggle.setAttribute('aria-expanded', 'false');
+        });
+    }
+
+    function closeAdminProfileModal() {
+        if (!adminProfileModal) return;
+        adminProfileModal.style.display = 'none';
+        document.body.classList.remove('admin-profile-open');
+    }
+
+    function openAdminProfileModal() {
+        if (!adminProfileModal) return;
+        logoutDropdown?.classList.remove('active');
+        userMenuToggle?.setAttribute('aria-expanded', 'false');
+        adminProfileModal.style.display = 'flex';
+        document.body.classList.add('admin-profile-open');
+        adminProfileModal.querySelector('input[name="name"]')?.focus();
+    }
+
+    adminProfileOpen?.addEventListener('click', function (event) {
+        event.stopPropagation();
+        openAdminProfileModal();
+    });
+    adminProfileModal?.querySelectorAll('[data-profile-close]').forEach(button => {
+        button.addEventListener('click', closeAdminProfileModal);
+    });
+    adminProfileModal?.querySelector('.admin-profile-dialog')?.addEventListener('click', event => event.stopPropagation());
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeAdminProfileModal();
+    });
+    adminAvatarInput?.addEventListener('change', function () {
+        const file = this.files?.[0];
+        if (!file || !adminAvatarPreview) return;
+        adminAvatarPreview.src = URL.createObjectURL(file);
     });
 
-    // Bấm ra bất kỳ đâu ngoài màn hình thì ẩn menu đi
-    document.addEventListener('click', function() {
-    if (logoutDropdown.classList.contains('active')) {
-        logoutDropdown.classList.remove('active');
-    }
+    @if (old('profile_submission') || session('profile_success'))
+        openAdminProfileModal();
+    @endif
+  </script>
+
+  {{-- =========================================================
+      SIDEBAR COLLAPSE / EXPAND JS
+  ========================================================= --}}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const app = document.querySelector('.app');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function isMobile() {
+            return window.innerWidth <= 760;
+        }
+
+        // Khôi phục trạng thái sidebar từ localStorage
+        function initSidebarState() {
+            if (!app) return;
+            if (isMobile()) {
+                app.classList.remove('sidebar-collapsed');
+                document.documentElement.classList.remove('sidebar-is-collapsed');
+            } else {
+                const isCollapsed = localStorage.getItem('admin_sidebar_collapsed') === 'true';
+                if (isCollapsed) {
+                    app.classList.add('sidebar-collapsed');
+                    document.documentElement.classList.add('sidebar-is-collapsed');
+                } else {
+                    app.classList.remove('sidebar-collapsed');
+                    document.documentElement.classList.remove('sidebar-is-collapsed');
+                }
+            }
+        }
+
+        initSidebarState();
+
+        function toggleSidebar() {
+            if (!app) return;
+            if (isMobile()) {
+                const isOpen = app.classList.toggle('mobile-sidebar-open');
+                document.body.classList.toggle('mobile-sidebar-active', isOpen);
+            } else {
+                const isCollapsed = app.classList.toggle('sidebar-collapsed');
+                document.documentElement.classList.toggle('sidebar-is-collapsed', isCollapsed);
+                localStorage.setItem('admin_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+            }
+        }
+
+        function closeSidebar() {
+            if (!app) return;
+            if (isMobile()) {
+                app.classList.remove('mobile-sidebar-open');
+                document.body.classList.remove('mobile-sidebar-active');
+            } else {
+                app.classList.add('sidebar-collapsed');
+                document.documentElement.classList.add('sidebar-is-collapsed');
+                localStorage.setItem('admin_sidebar_collapsed', 'true');
+            }
+        }
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                toggleSidebar();
+            });
+        }
+
+        if (sidebarCollapseBtn) {
+            sidebarCollapseBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                closeSidebar();
+            });
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', function () {
+                closeSidebar();
+            });
+        }
+
+        // Phím tắt Ctrl+B hoặc Cmd+B
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+                e.preventDefault();
+                toggleSidebar();
+            } else if (e.key === 'Escape' && isMobile() && app && app.classList.contains('mobile-sidebar-open')) {
+                closeSidebar();
+            }
+        });
+
+        // Xử lý khi resize màn hình
+        window.addEventListener('resize', function () {
+            if (!app) return;
+            if (!isMobile()) {
+                app.classList.remove('mobile-sidebar-open');
+                document.body.classList.remove('mobile-sidebar-active');
+                const isCollapsed = localStorage.getItem('admin_sidebar_collapsed') === 'true';
+                if (isCollapsed) {
+                    app.classList.add('sidebar-collapsed');
+                    document.documentElement.classList.add('sidebar-is-collapsed');
+                } else {
+                    app.classList.remove('sidebar-collapsed');
+                    document.documentElement.classList.remove('sidebar-is-collapsed');
+                }
+            }
+        });
     });
   </script>
 
@@ -148,12 +302,31 @@
     </script>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    window.initAdminPermissionCheckboxes = function () {
         const checkAll = document.getElementById('checkAll');
         const permissionCheckboxes = document.querySelectorAll('.permission-checkbox');
         const moduleCheckboxes = document.querySelectorAll('.module-check-all');
 
-        /* CHỌN TẤT CẢ */
+        if (!checkAll && permissionCheckboxes.length === 0 && moduleCheckboxes.length === 0) {
+            return;
+        }
+
+        function updateModuleCheckbox(module) {
+            const modulePermissions = document.querySelectorAll('.module-' + module);
+            const moduleChecked = document.querySelectorAll('.module-' + module + ':checked');
+            const moduleCheckbox = document.querySelector('.module-check-all[data-module="' + module + '"]');
+
+            if (moduleCheckbox) {
+                moduleCheckbox.checked = modulePermissions.length > 0 && modulePermissions.length === moduleChecked.length;
+            }
+        }
+
+        function updateCheckAll() {
+            if (!checkAll) return;
+            const checked = document.querySelectorAll('.permission-checkbox:checked');
+            checkAll.checked = permissionCheckboxes.length > 0 && permissionCheckboxes.length === checked.length;
+        }
+
         checkAll?.addEventListener('change', function () {
             permissionCheckboxes.forEach(function (checkbox) {
                 checkbox.checked = checkAll.checked;
@@ -163,7 +336,6 @@
             });
         });
 
-        /* CHỌN THEO MODULE */
         moduleCheckboxes.forEach(function (moduleCheckbox) {
             moduleCheckbox.addEventListener('change', function () {
                 const module = moduleCheckbox.dataset.module;
@@ -174,7 +346,6 @@
             });
         });
 
-        /* KHI CHECK TỪNG QUYỀN */
         permissionCheckboxes.forEach(function (checkbox) {
             checkbox.addEventListener('change', function () {
                 updateModuleCheckbox(checkbox.dataset.module);
@@ -182,221 +353,39 @@
             });
         });
 
-        function updateModuleCheckbox(module) {
-            const modulePermissions = document.querySelectorAll('.module-' + module);
-            const moduleChecked = document.querySelectorAll('.module-' + module + ':checked');
-            const moduleCheckbox = document.querySelector('.module-check-all[data-module="' + module + '"]');
-
-            if (moduleCheckbox) {
-                moduleCheckbox.checked = modulePermissions.length === moduleChecked.length;
-            }
-        }
-
-        function updateCheckAll() {
-            const checked = document.querySelectorAll('.permission-checkbox:checked');
-            checkAll.checked = permissionCheckboxes.length === checked.length;
-        }
-    });
-</script>
-<script>
-
-    document.addEventListener('DOMContentLoaded', function () {
-
-        const checkAll =
-            document.getElementById('checkAll');
-
-        const permissionCheckboxes =
-            document.querySelectorAll(
-                '.permission-checkbox'
-            );
-
-        const moduleCheckboxes =
-            document.querySelectorAll(
-                '.module-check-all'
-            );
-
-
-        function updateModuleCheckbox(module) {
-
-            const permissions =
-                document.querySelectorAll(
-                    '.module-' + module
-                );
-
-            const checked =
-                document.querySelectorAll(
-                    '.module-' + module + ':checked'
-                );
-
-            const moduleCheckbox =
-                document.querySelector(
-                    '.module-check-all[data-module="' +
-                    module +
-                    '"]'
-                );
-
-            if (moduleCheckbox) {
-
-                moduleCheckbox.checked =
-                    permissions.length > 0 &&
-                    permissions.length === checked.length;
-
-            }
-
-        }
-
-
-        function updateCheckAll() {
-
-            if (!checkAll) {
-                return;
-            }
-
-            const checked =
-                document.querySelectorAll(
-                    '.permission-checkbox:checked'
-                );
-
-            checkAll.checked =
-                permissionCheckboxes.length > 0 &&
-                permissionCheckboxes.length === checked.length;
-
-        }
-
-
-        checkAll?.addEventListener('change', function () {
-
-            permissionCheckboxes.forEach(function (checkbox) {
-
-                checkbox.checked =
-                    checkAll.checked;
-
-            });
-
-
-            moduleCheckboxes.forEach(function (checkbox) {
-
-                checkbox.checked =
-                    checkAll.checked;
-
-            });
-
-        });
-
-
-        moduleCheckboxes.forEach(function (moduleCheckbox) {
-
-            moduleCheckbox.addEventListener(
-                'change',
-                function () {
-
-                    const module =
-                        moduleCheckbox.dataset.module;
-
-                    document
-                        .querySelectorAll(
-                            '.module-' + module
-                        )
-                        .forEach(function (checkbox) {
-
-                            checkbox.checked =
-                                moduleCheckbox.checked;
-
-                        });
-
-
-                    updateCheckAll();
-
-                }
-            );
-
-        });
-
-
-        permissionCheckboxes.forEach(function (checkbox) {
-
-            checkbox.addEventListener(
-                'change',
-                function () {
-
-                    updateModuleCheckbox(
-                        checkbox.dataset.module
-                    );
-
-                    updateCheckAll();
-
-                }
-            );
-
-        });
-
-
-        /*
-        * Đồng bộ trạng thái checkbox
-        * ngay khi mở trang Edit.
-        */
-
+        // Đồng bộ trạng thái checkbox khi mở
         moduleCheckboxes.forEach(function (checkbox) {
-
-            updateModuleCheckbox(
-                checkbox.dataset.module
-            );
-
+            updateModuleCheckbox(checkbox.dataset.module);
         });
-
         updateCheckAll();
+    };
 
-    });
+    document.addEventListener('DOMContentLoaded', window.initAdminPermissionCheckboxes);
+    </script>
 
-</script>
-
-{{-- =========================================================
-    MENU TOGGLE JS
-========================================================= --}}
-<script>
-
-    document.addEventListener('DOMContentLoaded', function () {
-
+    {{-- =========================================================
+        MENU TOGGLE JS
+    ========================================================= --}}
+    <script>
+    window.initAdminMenuToggles = function () {
         document.querySelectorAll('.menu-toggle').forEach(function (button) {
+            if (button.dataset.bound) return;
+            button.dataset.bound = 'true';
 
             button.addEventListener('click', function () {
+                const menuRow = button.closest('.menu-row');
+                if (!menuRow) return;
 
-                const menuRow =
-                    button.closest('.menu-row');
+                const children = menuRow.querySelector('.menu-children');
+                if (!children) return;
 
-                if (!menuRow) {
-                    return;
-                }
-
-
-                const children =
-                    menuRow.querySelector('.menu-children');
-
-                if (!children) {
-                    return;
-                }
-
-
-                const isOpen =
-                    button.getAttribute('aria-expanded') === 'true';
-
-
-                button.setAttribute(
-                    'aria-expanded',
-                    isOpen ? 'false' : 'true'
-                );
-
-
-                children.classList.toggle(
-                    'is-open',
-                    !isOpen
-                );
-
+                const isOpen = button.getAttribute('aria-expanded') === 'true';
+                button.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+                children.classList.toggle('is-open', !isOpen);
             });
-
         });
+    };
 
-    });
-
-</script>
+    document.addEventListener('DOMContentLoaded', window.initAdminMenuToggles);
+    </script>
 </footer>

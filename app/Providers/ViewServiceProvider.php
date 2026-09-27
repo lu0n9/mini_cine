@@ -35,6 +35,19 @@ class ViewServiceProvider extends ServiceProvider
         View::share(
             'newReportCount',
             Report::where('status', 'pending')->count());
+
+        View::composer('client.partials.header', function ($view) {
+            $user = auth('web')->user();
+
+            $view->with([
+                'headerNotifications' => $user
+                    ? $user->notifications()->latest()->take(5)->get()
+                    : collect(),
+                'unreadNotificationCount' => $user
+                    ? $user->notifications()->whereNull('read_at')->count()
+                    : 0,
+            ]);
+        });
         /*
         |--------------------------------------------------------------------------
         | Main Menu

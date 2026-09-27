@@ -22,7 +22,7 @@ class RoleController extends Controller
             ])
             ->orderByDesc('is_super_admin')
             ->orderBy('name')
-            ->get();
+            ->paginate(15);
 
         return view('admin.pages.roles.index', compact('roles'));
     }

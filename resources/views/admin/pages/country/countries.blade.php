@@ -172,6 +172,12 @@
 
     </div>
 
+    @if($countries->hasPages())
+        <div class="pagination">
+            {{ $countries->links('pagination::custom') }}
+        </div>
+    @endif
+
 </section>
 
 @endsection

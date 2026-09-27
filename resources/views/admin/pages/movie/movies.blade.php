@@ -101,8 +101,10 @@
     </div>
 
     <!-- Phân trang -->
-    <div class="pagination-wrapper" style="margin-top: 15px;">
-        {{ $movies->appends(request()->query())->links() }}
-    </div>
+    @if($movies->hasPages())
+        <div class="pagination">
+            {{ $movies->appends(request()->query())->links('pagination::custom') }}
+        </div>
+    @endif
 </section>
 @endsection

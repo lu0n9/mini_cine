@@ -7,6 +7,7 @@ use App\Models\Subtitle;
 use App\Models\VideoProcessingJob;
 use App\Services\HlsVideoService;
 use App\Services\SupabaseStorageService;
+use App\Services\VideoProcessingCleanupService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -41,6 +42,11 @@ class ProcessVideoToHls implements ShouldQueue
     public ?string $subtitleDefaultLanguage;
 
     /**
+     * ID của server API để upload (nullable = dùng mặc định).
+     */
+    public ?int $serverId;
+
+    /**
      * Số lần thử.
      */
     public int $tries = 1;
@@ -56,11 +62,13 @@ class ProcessVideoToHls implements ShouldQueue
     public function __construct(
         int $processingJobId,
         array $subtitles = [],
-        ?string $subtitleDefaultLanguage = null
+        ?string $subtitleDefaultLanguage = null,
+        ?int $serverId = null
     ) {
         $this->processingJobId = $processingJobId;
         $this->subtitles = $subtitles;
         $this->subtitleDefaultLanguage = $subtitleDefaultLanguage;
+        $this->serverId = $serverId;
     }
 
     /**
@@ -68,7 +76,7 @@ class ProcessVideoToHls implements ShouldQueue
      */
     public function handle(
         HlsVideoService $hlsService,
-        SupabaseStorageService $supabase
+        VideoProcessingCleanupService $cleanupService
     ): void {
         /*
          * ==========================================================
@@ -83,10 +91,14 @@ class ProcessVideoToHls implements ShouldQueue
             $this->processingJobId
         );
 
+        // The selected API ID is serialized with this queued job.
+        $supabase = new SupabaseStorageService($this->serverId);
+
         Log::info('ProcessVideoToHls started', [
             'processing_job_id' => $job->id,
             'movie_id' => $job->movie_id,
             'episode_id' => $job->episode_id,
+            'server_id' => $this->serverId,
             'original_path' => $job->original_path,
         ]);
 
@@ -279,30 +291,9 @@ class ProcessVideoToHls implements ShouldQueue
             'error_message' => null,
         ]);
 
-        /*
-         * ==========================================================
-         * 10. XÓA VIDEO GỐC
-         * ==========================================================
-         */
-
-        if (
-            Storage::disk('local')->exists(
-                $job->original_path
-            )
-        ) {
-            Storage::disk('local')->delete(
-                $job->original_path
-            );
-        }
-
-        /*
-         * Xóa thư mục HLS tạm.
-         */
-        if (File::exists($outputDirectory)) {
-            File::deleteDirectory(
-                $outputDirectory
-            );
-        }
+        // Cloud uploads and source records are complete. Remove all local
+        // video artifacts now; the status endpoint also retries this cleanup.
+        $cleanupService->cleanupCompletedJob($job);
 
         /*
          * Xóa subtitle tạm.
@@ -357,7 +348,7 @@ class ProcessVideoToHls implements ShouldQueue
                     'quality' => $quality,
                 ],
                 [
-                    'server_name' => 'Supabase',
+                    'server_name' => $supabase->serverName(),
                     'source_url' => $sourceUrl,
                     'type' => 'hls',
                     'is_active' => true,

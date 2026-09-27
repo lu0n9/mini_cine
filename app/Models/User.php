@@ -118,4 +118,72 @@ class User extends Authenticatable
     {
         return $this->hasMany(Report::class);
     }
+    public function forumPosts()
+    {
+        return $this->hasMany(ForumPost::class);
+    }
+
+    public function forumComments()
+    {
+        return $this->hasMany(ForumComment::class);
+    }
+
+    public function forumPostLikes()
+    {
+        return $this->hasMany(ForumPostLike::class);
+    }
+
+    public function forumCommentLikes()
+    {
+        return $this->hasMany(ForumCommentLike::class);
+    }
+
+    public function activePremiumSubscription(): ?PremiumSubscription
+    {
+        $owned = PremiumSubscription::query()
+            ->with('plan')
+            ->where('user_id', $this->id)
+            ->where('status', 'active')
+            ->where('ends_at', '>', now())
+            ->latest('ends_at')
+            ->first();
+
+        if ($owned) {
+            return $owned;
+        }
+
+        return PremiumShare::query()
+            ->with('subscription.plan')
+            ->where('shared_user_id', $this->id)
+            ->whereHas('subscription', function ($query) {
+                $query->where('status', 'active')->where('ends_at', '>', now());
+            })
+            ->latest()
+            ->first()?->subscription;
+    }
+
+    public function premiumSubscriptions()
+    {
+        return $this->hasMany(PremiumSubscription::class);
+    }
+
+    public function premiumCouponGrants()
+    {
+        return $this->hasMany(UserPremiumCoupon::class);
+    }
+
+    public function premiumShares()
+    {
+        return $this->hasMany(PremiumShare::class, 'shared_user_id');
+    }
+
+    public function hasPremiumAccess(): bool
+    {
+        return $this->activePremiumSubscription() !== null;
+    }
+
+    public function hasPremiumExtra(): bool
+    {
+        return $this->activePremiumSubscription()?->plan?->code === 'premium_extra';
+    }
 }

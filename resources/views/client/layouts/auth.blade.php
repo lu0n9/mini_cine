@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="{{ app()->getLocale() }}">
 <head>
     @include('client.partials.head')
     <title>@yield('title', 'Đăng nhập') - Hắc Ảnh</title>

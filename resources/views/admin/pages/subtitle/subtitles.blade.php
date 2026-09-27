@@ -26,6 +26,35 @@
         </div>
     @endif
 
+    <form method="GET" action="{{ route('admin.subtitles') }}" class="table-tools">
+        <span class="mini-search">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Tìm phim, tập, ngôn ngữ...">
+        </span>
+        <select class="filter" name="movie_id" aria-label="Lọc theo phim">
+            <option value="">Tất cả phim</option>
+            @foreach($movies as $movie)
+                <option value="{{ $movie->id }}" @selected((string) request('movie_id') === (string) $movie->id)>{{ $movie->title }}</option>
+            @endforeach
+        </select>
+        <select class="filter" name="language" aria-label="Lọc theo ngôn ngữ">
+            <option value="">Tất cả ngôn ngữ</option>
+            @foreach($languages as $language)
+                <option value="{{ $language }}" @selected(request('language') === $language)>{{ $language }}</option>
+            @endforeach
+        </select>
+        <select class="filter" name="active" aria-label="Lọc theo trạng thái">
+            <option value="">Mọi trạng thái</option>
+            <option value="1" @selected(request('active') === '1')>Đang bật</option>
+            <option value="0" @selected(request('active') === '0')>Đang tắt</option>
+        </select>
+        <select class="filter" name="default" aria-label="Lọc phụ đề mặc định">
+            <option value="">Mặc định hoặc khác</option>
+            <option value="1" @selected(request('default') === '1')>Phụ đề mặc định</option>
+            <option value="0" @selected(request('default') === '0')>Không mặc định</option>
+        </select>
+        <button type="submit" class="filter on">Lọc</button>
+        <a href="{{ route('admin.subtitles') }}" class="filter">Xóa lọc</a>
+    </form>
 
     <div class="panel">
 
@@ -152,6 +181,12 @@
         </table>
 
     </div>
+
+    @if($subtitles->hasPages())
+        <div class="pagination">
+            {{ $subtitles->links('pagination::custom') }}
+        </div>
+    @endif
 
 </section>
 

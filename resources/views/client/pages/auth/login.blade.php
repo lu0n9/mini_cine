@@ -30,6 +30,12 @@
 
         @csrf
 
+        @if (session('success'))
+          <div class="auth-alert auth-alert--success" role="status">
+            {{ session('success') }}
+          </div>
+        @endif
+
         {{-- Báo lỗi chung --}}
 
         @if (session('error'))
@@ -158,22 +164,14 @@
       </form>
 
 
-      {{-- Chuyển sang Đăng ký --}}
-
-      <div class="auth-card__footer">
-
-        <p>
-          Chưa có tài khoản?
-
-          <a
-            href="{{ route('register') }}"
-            class="auth-link auth-link--highlight"
-          >
-            Đăng ký ngay
-          </a>
-        </p>
-
-      </div>
+      @if($systemSettings->allow_registration)
+        <div class="auth-card__footer">
+          <p>
+            Chưa có tài khoản?
+            <a href="{{ route('register') }}" class="auth-link auth-link--highlight">Đăng ký ngay</a>
+          </p>
+        </div>
+      @endif
 
     </div>
 

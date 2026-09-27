@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -7,18 +8,20 @@ use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\admin\IndexController;
 use App\Http\Controllers\client\HomeController;
 use App\Http\Controllers\client\MovieController;
+use App\Http\Controllers\Client\PremiumController;
 use App\Http\Controllers\client\PeopleController;
 use App\Http\Controllers\client\RatingController;
 use App\Http\Controllers\client\CommentController;
 use App\Http\Controllers\client\FavoriteController;
+use App\Http\Controllers\client\ForumController;
+use App\Http\Controllers\Client\NewsController as ClientNewsController;
+use App\Http\Controllers\Client\RandomMovieController;
+use App\Http\Controllers\Client\SearchController;
 use App\Http\Controllers\admin\VideoUploadController;
 use App\Http\Controllers\admin\MenuController;
+use App\Http\Controllers\admin\PageController;
 use App\Models\Admin;
 
-
-Route::get('/test-admin', function () {
-    return view('admin.index');
-});
 
 /*
 |--------------------------------------------------------------------------
@@ -31,9 +34,15 @@ Route::get('/', [HomeController::class, 'index'])
     ->name('home');
 
 // Danh sách phim
-Route::get('/movies', function () {
-    return view('client.pages.movies.movies');
-})->name('movies.index');
+Route::get('/movies', [MovieController::class, 'index'])->name('movies.index');
+Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->name('search.suggestions');
+
+Route::get('/news', [ClientNewsController::class, 'index'])->name('news.index');
+Route::get('/news/{slug}', [ClientNewsController::class, 'show'])->name('news.show');
+
+// Random suggestions page opens its movie picker as a modal.
+Route::get('/random-movies', RandomMovieController::class)
+    ->name('movies.random');
 
 // Chi tiết phim
 Route::get('/movie/{slug}', [MovieController::class,'movieDetail'])
@@ -49,8 +58,16 @@ Route::get(
 Route::get('/movie/{slug}/watch', [MovieController::class, 'watch'])
     ->name('movies.watch');
 
+Route::get('/premium', [PremiumController::class, 'index'])->name('premium.index');
+Route::get('/premium/vnpay/return', [PremiumController::class, 'vnpayReturn'])->name('premium.vnpay.return');
+
 Route::get('/dien-vien/{slug}', [PeopleController::class, 'show'])
     ->name('people.show');
+
+// Public Sitemaps
+Route::get('/sitemap.xml', [\App\Http\Controllers\admin\SeoController::class, 'serveSitemapIndex'])->name('sitemap.index');
+Route::get('/sitemap-{type}.xml', [\App\Http\Controllers\admin\SeoController::class, 'serveSitemapType'])->name('sitemap.type');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -66,6 +83,16 @@ Route::middleware('guest')->group(function () {
 
     Route::post('/login', [UserAuthController::class, 'login'])
         ->name('login.submit');
+
+    // Quên và đặt lại mật khẩu
+    Route::get('/forgot-password', [UserAuthController::class, 'showForgotPassword'])
+        ->name('password.request');
+    Route::post('/forgot-password', [UserAuthController::class, 'sendPasswordResetLink'])
+        ->name('password.email');
+    Route::get('/reset-password/{token}', [UserAuthController::class, 'showResetPassword'])
+        ->name('password.reset');
+    Route::post('/reset-password', [UserAuthController::class, 'resetPassword'])
+        ->name('password.update');
 
     // Đăng ký
     Route::get('/register', [UserAuthController::class, 'showRegister'])
@@ -89,6 +116,17 @@ Route::post('/logout', [UserAuthController::class, 'logout'])
 */
 
 Route::middleware('auth', 'user.ban')->group(function () {
+
+    Route::get('/notifications', [\App\Http\Controllers\Client\NotificationController::class, 'index'])
+        ->name('notifications.index');
+    Route::get('/notifications/{notification}', [\App\Http\Controllers\Client\NotificationController::class, 'show'])
+        ->whereNumber('notification')
+        ->name('notifications.show');
+
+    Route::post('/premium/checkout/{plan}', [PremiumController::class, 'checkout'])->name('premium.checkout');
+    Route::get('/premium/invoices/{transaction}', [PremiumController::class, 'invoice'])->name('premium.invoice');
+    Route::post('/premium/shares', [PremiumController::class, 'addShare'])->name('premium.shares.store');
+    Route::delete('/premium/shares/{share}', [PremiumController::class, 'removeShare'])->name('premium.shares.destroy');
 
     // Profile
     Route::get('/profile', [UserAuthController::class, 'showProfile'])
@@ -121,7 +159,7 @@ Route::middleware('auth', 'user.ban')->group(function () {
     ->name('comments.like');
 
     // favorite
-    Route::get('/danh-sach-cua-toi',[FavoriteController::class, 'index'])
+    Route::get('/my-list',[FavoriteController::class, 'index'])
     ->name('favorites.index');
 
     Route::post('/favorites/{movie}/toggle',[FavoriteController::class, 'toggle'])
@@ -131,6 +169,48 @@ Route::middleware('auth', 'user.ban')->group(function () {
     // report
     Route::post('/reports', [App\Http\Controllers\client\ReportController::class, 'store'])
         ->name('reports.store');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Forum
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/forum', [ForumController::class, 'index'])
+        ->name('forum.index');
+
+    Route::get('/forum/category/{slug}', [ForumController::class, 'category'])
+        ->name('forum.category');
+
+    Route::get('/forum/post/{slug}', [ForumController::class, 'show'])
+        ->name('forum.show');
+
+
+    Route::get('/forum/create', [ForumController::class, 'create'])
+        ->name('forum.create');
+
+    Route::post('/forum/post', [ForumController::class, 'store'])
+        ->name('forum.store');
+
+    Route::get('/forum/post/{post}/edit', [ForumController::class, 'edit'])
+        ->name('forum.edit');
+
+    Route::put('/forum/post/{post}', [ForumController::class, 'update'])
+        ->name('forum.update');
+
+    Route::delete('/forum/post/{post}', [ForumController::class, 'destroy'])
+        ->name('forum.destroy');
+
+    Route::post(
+        '/forum/post/{post}/comment',
+        [ForumController::class, 'commentStore']
+    )->name('forum.comment.store');
+    Route::get(
+        '/forum/my-posts',
+        [ForumController::class, 'myPosts']
+    )->name('forum.my-posts');
+
+
 
 });
 
@@ -167,7 +247,7 @@ Route::prefix('admin')
         |--------------------------------------------------------------------------
         */
 
-        Route::middleware('auth:admin')->group(function () {
+        Route::middleware(['auth:admin', 'admin.activity-log'])->group(function () {
 
             /*
             |--------------------------------------------------------------------------
@@ -188,6 +268,10 @@ Route::prefix('admin')
 
             Route::post('/logout', [AdminAuthController::class, 'logout'])
                 ->name('logout');
+
+            Route::post('/profile', [\App\Http\Controllers\admin\AdminController::class, 'updateProfile'])
+                ->middleware('admin.permission:profile.update')
+                ->name('profile.update');
 
 
             /*
@@ -872,7 +956,7 @@ Route::prefix('admin')
 
 
             Route::put('/permissions/{permission}', [
-                PermissionController::class,
+                \App\Http\Controllers\admin\PermissionController::class,
                 'update'
             ])
                 ->middleware('admin.permission:roles.edit')
@@ -880,7 +964,7 @@ Route::prefix('admin')
 
 
             Route::delete('/permissions/{permission}', [
-                \App\Http\Controllers\admin\PermissionController::class,
+               \App\Http\Controllers\admin\PermissionController::class,
                 'destroy'
             ])
                 ->middleware('admin.permission:roles.delete')
@@ -889,12 +973,12 @@ Route::prefix('admin')
             Route::get('/matrix', [
                 \App\Http\Controllers\admin\MatrixController::class,
                 'index'
-            ])->name('matrix.index');
+            ])->middleware('admin.permission:roles.view')->name('matrix.index');
 
             Route::put('/permissions/role/{role}', [
                 \App\Http\Controllers\admin\MatrixController::class,
                 'update'
-            ])->name('matrix.update');
+            ])->middleware('admin.permission:roles.edit')->name('matrix.update');
 
             /*
             |--------------------------------------------------------------------------
@@ -964,32 +1048,32 @@ Route::prefix('admin')
             Route::get('/comments', [
                 \App\Http\Controllers\admin\CommentController::class,
                 'index'
-            ])->name('comments.index');
+            ])->middleware('admin.permission:comments.view')->name('comments.index');
 
             Route::post('/comments/{comment}/approve', [
                 \App\Http\Controllers\admin\CommentController::class,
                 'approve'
-            ])->name('comments.approve');
+            ])->middleware('admin.permission:comments.moderate')->name('comments.approve');
 
             Route::post('/comments/{comment}/spam', [
                 \App\Http\Controllers\admin\CommentController::class,
                 'spam'
-            ])->name('comments.spam');
+            ])->middleware('admin.permission:comments.moderate')->name('comments.spam');
 
             Route::post('/comments/{comment}/hide', [
                 \App\Http\Controllers\admin\CommentController::class,
                 'hide'
-            ])->name('comments.hide');
+            ])->middleware('admin.permission:comments.moderate')->name('comments.hide');
 
             Route::post('/comments/{comment}/show', [
                 \App\Http\Controllers\admin\CommentController::class,
                 'show'
-            ])->name('comments.show');
+            ])->middleware('admin.permission:comments.moderate')->name('comments.show');
 
             Route::delete('/comments/{comment}', [
                 \App\Http\Controllers\admin\CommentController::class,
                 'destroy'
-            ])->name('comments.destroy');
+            ])->middleware('admin.permission:comments.delete')->name('comments.destroy');
 
 
             // Ratings
@@ -998,16 +1082,19 @@ Route::prefix('admin')
                 ->name('ratings.index');
 
             Route::delete('/ratings/{rating}', [\App\Http\Controllers\admin\RatingController::class, 'destroy'])
-            ->middleware('admin.permission:ratings.view')
+            ->middleware('admin.permission:ratings.delete')
                 ->name('ratings.destroy');
             // Reports
             Route::get('/reports', [\App\Http\Controllers\admin\ReportController::class, 'index'])
+                ->middleware('admin.permission:reports.view')
                 ->name('reports.index');
 
             Route::patch('/reports/{report}/status', [\App\Http\Controllers\admin\ReportController::class, 'updateStatus'])
+                ->middleware('admin.permission:reports.manage')
                 ->name('reports.update-status');
 
             Route::delete('/reports/{report}', [\App\Http\Controllers\admin\ReportController::class, 'destroy'])
+                ->middleware('admin.permission:reports.manage')
                 ->name('reports.destroy');
 
             /*
@@ -1058,34 +1145,49 @@ Route::prefix('admin')
                 ->middleware('admin.permission:interface.homepage')
                 ->name('interface.homepage');
 
-                Route::get('/menus', [MenuController::class, 'index'])
-                    ->middleware('admin.permission:interface.menus')
-                    ->name('menus.index');
+            Route::get('/menus', [MenuController::class, 'index'])
+                ->middleware('admin.permission:interface.menus')
+                ->name('menus.index');
 
-                Route::get('/menus/create', [MenuController::class, 'create'])
-                    ->name('menus.create');
+            Route::get('/menus/create', [MenuController::class, 'create'])
+                ->middleware('admin.permission:interface.menus')
+                ->name('menus.create');
 
-                Route::post('/menus', [MenuController::class, 'store'])
-                    ->name('menus.store');
+            Route::post('/menus', [MenuController::class, 'store'])
+                ->middleware('admin.permission:interface.menus')
+                ->name('menus.store');
 
-                Route::get('/menus/{menu}/edit', [MenuController::class, 'edit'])
-                    ->name('menus.edit');
+            Route::get('/menus/{menu}/edit', [MenuController::class, 'edit'])
+                ->middleware('admin.permission:interface.menus')
+                ->name('menus.edit');
 
-                Route::put('/menus/{menu}', [MenuController::class, 'update'])
-                    ->name('menus.update');
+            Route::put('/menus/{menu}', [MenuController::class, 'update'])
+                ->middleware('admin.permission:interface.menus')
+                ->name('menus.update');
 
-                Route::delete('/menus/{menu}', [MenuController::class, 'destroy'])
-                    ->name('menus.destroy');
+            Route::delete('/menus/{menu}', [MenuController::class, 'destroy'])
+                ->middleware('admin.permission:interface.menus')
+                ->name('menus.destroy');
 
-                Route::patch('/menus/{menu}/toggle', [MenuController::class, 'toggle'])
-                    ->name('menus.toggle');
+            Route::patch('/menus/{menu}/toggle', [MenuController::class, 'toggle'])
+                ->middleware('admin.permission:interface.menus')
+                ->name('menus.toggle');
 
-            Route::get(
-                '/interface/pages',
-                [\App\Http\Controllers\admin\InterfaceController::class, 'pages']
-            )
+        
+            Route::post('/pages/upload-image', [PageController::class, 'uploadImage'])
                 ->middleware('admin.permission:interface.pages')
-                ->name('interface.pages');
+                ->name('pages.upload-image');
+            Route::patch('/pages/{page}/toggle-status', [PageController::class, 'toggleStatus'])
+                ->middleware('admin.permission:interface.pages')
+                ->name('pages.toggle-status');
+
+            Route::resource('pages', PageController::class)
+                ->middleware('admin.permission:interface.pages')
+                ->except(['show']);
+
+            Route::resource('news', \App\Http\Controllers\Admin\NewsController::class)
+                ->middleware('admin.permission:news.manage')
+                ->except(['show']);
 
 
             /*
@@ -1101,12 +1203,61 @@ Route::prefix('admin')
                 ->middleware('admin.permission:notifications.view')
                 ->name('notifications');
 
+            Route::post(
+                '/notifications/send',
+                [\App\Http\Controllers\admin\NotificationController::class, 'sendNotification']
+            )
+                ->middleware('admin.permission:notifications.create')
+                ->name('notifications.send');
+
+            Route::get(
+                '/notifications/user-count',
+                [\App\Http\Controllers\admin\NotificationController::class, 'previewUserCount']
+            )
+                ->middleware('admin.permission:notifications.view')
+                ->name('notifications.user-count');
+
+            Route::get(
+                '/notifications/search-users',
+                [\App\Http\Controllers\admin\NotificationController::class, 'searchUsers']
+            )
+                ->middleware('admin.permission:notifications.view')
+                ->name('notifications.search-users');
+
+            Route::delete(
+                '/notifications/campaigns/{id}',
+                [\App\Http\Controllers\admin\NotificationController::class, 'deleteCampaign']
+            )
+                ->middleware('admin.permission:notifications.delete')
+                ->name('notifications.campaigns.delete');
+
             Route::get(
                 '/email',
                 [\App\Http\Controllers\admin\NotificationController::class, 'email']
             )
-                ->middleware('admin.permission:email.manage')
+                ->middleware('admin.permission:email.view')
                 ->name('email');
+
+            Route::post(
+                '/email/settings',
+                [\App\Http\Controllers\admin\NotificationController::class, 'updateSmtp']
+            )
+                ->middleware('admin.permission:email.update')
+                ->name('email.settings');
+
+            Route::post(
+                '/email/test',
+                [\App\Http\Controllers\admin\NotificationController::class, 'sendTestEmail']
+            )
+                ->middleware('admin.permission:email.update')
+                ->name('email.test');
+
+            Route::get(
+                '/email/preview-template',
+                [\App\Http\Controllers\admin\NotificationController::class, 'previewTemplate']
+            )
+                ->middleware('admin.permission:email.view')
+                ->name('email.preview');
 
 
             /*
@@ -1122,12 +1273,33 @@ Route::prefix('admin')
                 ->middleware('admin.permission:seo.manage')
                 ->name('seo');
 
+            Route::post(
+                '/seo',
+                [\App\Http\Controllers\admin\SeoController::class, 'updateSeo']
+            )
+                ->middleware('admin.permission:seo.manage')
+                ->name('seo.update');
+
             Route::get(
                 '/sitemap',
                 [\App\Http\Controllers\admin\SeoController::class, 'siteMap']
             )
                 ->middleware('admin.permission:sitemap.manage')
                 ->name('sitemap');
+
+            Route::post(
+                '/sitemap/generate-all',
+                [\App\Http\Controllers\admin\SeoController::class, 'generateAllSitemaps']
+            )
+                ->middleware('admin.permission:sitemap.manage')
+                ->name('sitemap.generate-all');
+
+            Route::post(
+                '/sitemap/generate/{type}',
+                [\App\Http\Controllers\admin\SeoController::class, 'generateSingleSitemap']
+            )
+                ->middleware('admin.permission:sitemap.manage')
+                ->name('sitemap.generate-single');
 
 
             /*
@@ -1142,6 +1314,55 @@ Route::prefix('admin')
             )
                 ->middleware('admin.permission:premium.coupons')
                 ->name('premium.coupons');
+
+            Route::post(
+                '/premium/coupons',
+                [\App\Http\Controllers\admin\PremiumController::class, 'storeCoupon']
+            )
+                ->middleware('admin.permission:premium.coupons')
+                ->name('premium.coupons.store');
+
+            Route::patch(
+                '/premium/coupons/{coupon}/toggle',
+                [\App\Http\Controllers\admin\PremiumController::class, 'toggleCoupon']
+            )
+                ->middleware('admin.permission:premium.coupons')
+                ->name('premium.coupons.toggle');
+
+            Route::delete(
+                '/premium/coupons/{coupon}',
+                [\App\Http\Controllers\admin\PremiumController::class, 'deleteCoupon']
+            )
+                ->middleware('admin.permission:premium.coupons')
+                ->name('premium.coupons.delete');
+
+            Route::get(
+                '/premium/promotions',
+                [\App\Http\Controllers\admin\PremiumController::class, 'promotions']
+            )
+                ->middleware('admin.permission:premium.promotions')
+                ->name('premium.promotions');
+
+            Route::post(
+                '/premium/promotions',
+                [\App\Http\Controllers\admin\PremiumController::class, 'storePromotion']
+            )
+                ->middleware('admin.permission:premium.promotions')
+                ->name('premium.promotions.store');
+
+            Route::patch(
+                '/premium/promotions/{promotion}/toggle',
+                [\App\Http\Controllers\admin\PremiumController::class, 'togglePromotion']
+            )
+                ->middleware('admin.permission:premium.promotions')
+                ->name('premium.promotions.toggle');
+
+            Route::delete(
+                '/premium/promotions/{promotion}',
+                [\App\Http\Controllers\admin\PremiumController::class, 'deletePromotion']
+            )
+                ->middleware('admin.permission:premium.promotions')
+                ->name('premium.promotions.delete');
 
             Route::get(
                 '/premium/subscriptions',
@@ -1164,6 +1385,20 @@ Route::prefix('admin')
                 ->middleware('admin.permission:premium.plans')
                 ->name('premium.plans');
 
+            Route::post(
+                '/premium/plans/{code}',
+                [\App\Http\Controllers\admin\PremiumController::class, 'storePlan']
+            )
+                ->middleware('admin.permission:premium.plans')
+                ->name('premium.plans.store');
+
+            Route::put(
+                '/premium/plans/{plan}',
+                [\App\Http\Controllers\admin\PremiumController::class, 'updatePlan']
+            )
+                ->middleware('admin.permission:premium.plans')
+                ->name('premium.plans.update');
+
 
             /*
             |--------------------------------------------------------------------------
@@ -1185,12 +1420,83 @@ Route::prefix('admin')
                 ->middleware('admin.permission:system.api')
                 ->name('system.api');
 
+            Route::post(
+                '/system/api',
+                [\App\Http\Controllers\admin\SystemController::class, 'storeApiKey']
+            )
+                ->middleware('admin.permission:system.api')
+                ->name('system.api.store');
+
+            Route::post(
+                '/system/api/payment-config',
+                [\App\Http\Controllers\admin\SystemController::class, 'savePaymentConfig']
+            )
+                ->middleware('admin.permission:system.api')
+                ->name('system.api.payment-config');
+
+            Route::put(
+                '/system/api/{id}',
+                [\App\Http\Controllers\admin\SystemController::class, 'updateApiKey']
+            )
+                ->middleware('admin.permission:system.api')
+                ->name('system.api.update');
+
+            Route::post(
+                '/system/api/{id}/revoke',
+                [\App\Http\Controllers\admin\SystemController::class, 'revokeApiKey']
+            )
+                ->middleware('admin.permission:system.api')
+                ->name('system.api.revoke');
+
+            Route::post(
+                '/system/api/{id}/activate',
+                [\App\Http\Controllers\admin\SystemController::class, 'activateApiKey']
+            )
+                ->middleware('admin.permission:system.api')
+                ->name('system.api.activate');
+
+            Route::delete(
+                '/system/api/{id}',
+                [\App\Http\Controllers\admin\SystemController::class, 'deleteApiKey']
+            )
+                ->middleware('admin.permission:system.api')
+                ->name('system.api.delete');
+
+            // Bulk toggle status (active ↔ revoked) for selected API keys
+            Route::post(
+                '/system/api/bulk-toggle',
+                [\App\Http\Controllers\admin\SystemController::class, 'bulkToggle']
+            )
+                ->middleware('admin.permission:system.api')
+                ->name('system.api.bulk-toggle');
+
+            Route::post(
+                '/system/api/sync',
+                [\App\Http\Controllers\admin\SystemController::class, 'syncProjectApis']
+            )
+                ->middleware('admin.permission:system.api')
+                ->name('system.api.sync');
+
             Route::get(
                 '/system/cache',
                 [\App\Http\Controllers\admin\SystemController::class, 'cache']
             )
                 ->middleware('admin.permission:system.cache')
                 ->name('system.cache');
+
+            Route::post(
+                '/system/cache/clear',
+                [\App\Http\Controllers\admin\SystemController::class, 'clearCache']
+            )
+                ->middleware('admin.permission:system.cache')
+                ->name('system.cache.clear');
+
+            Route::post(
+                '/system/cache/clear-all',
+                [\App\Http\Controllers\admin\SystemController::class, 'clearAllCache']
+            )
+                ->middleware('admin.permission:system.cache')
+                ->name('system.cache.clear-all');
 
             Route::get(
                 '/system/backup',
@@ -1199,12 +1505,47 @@ Route::prefix('admin')
                 ->middleware('admin.permission:system.backup')
                 ->name('system.backup');
 
+            Route::post(
+                '/system/backup',
+                [\App\Http\Controllers\admin\SystemController::class, 'createBackup']
+            )
+                ->middleware('admin.permission:system.backup')
+                ->name('system.backup.create');
+
+            Route::get(
+                '/system/backup/{filename}/download',
+                [\App\Http\Controllers\admin\SystemController::class, 'downloadBackup']
+            )
+                ->middleware('admin.permission:system.backup')
+                ->name('system.backup.download');
+
+            Route::post(
+                '/system/backup/{filename}/restore',
+                [\App\Http\Controllers\admin\SystemController::class, 'restoreBackup']
+            )
+                ->middleware('admin.permission:system.backup')
+                ->name('system.backup.restore');
+
+            Route::delete(
+                '/system/backup/{filename}',
+                [\App\Http\Controllers\admin\SystemController::class, 'deleteBackup']
+            )
+                ->middleware('admin.permission:system.backup')
+                ->name('system.backup.delete');
+
             Route::get(
                 '/system/cron',
                 [\App\Http\Controllers\admin\SystemController::class, 'cron']
             )
                 ->middleware('admin.permission:system.cron')
                 ->name('system.cron');
+
+            Route::post(
+                '/system/cron/{job}/run',
+                [\App\Http\Controllers\admin\SystemController::class, 'runCronJob']
+            )
+                ->middleware('admin.permission:system.cron')
+                ->name('system.cron.run');
 
             Route::get(
                 '/system/storage',
@@ -1224,31 +1565,155 @@ Route::prefix('admin')
                 '/setting',
                 [\App\Http\Controllers\admin\SettingController::class, 'index']
             )
-                // ->middleware('admin.permission:settings.manage')
+                ->middleware('admin.permission:settings.manage')
                 ->name('setting.index');
+
+            Route::post(
+                '/setting',
+                [\App\Http\Controllers\admin\SettingController::class, 'update']
+            )
+                ->middleware('admin.permission:settings.manage')
+                ->name('setting.update');
 
 
             Route::get(
                 '/videos/upload',
                 [VideoUploadController::class, 'create']
             )
-                // ->middleware('admin.permission:servers.create')
+                ->middleware('admin.permission:videos.upload')
                 ->name('videos.upload');
 
             Route::post(
                 '/videos/upload',
                 [VideoUploadController::class, 'store']
             )
-                // ->middleware('admin.permission:servers.create')
+                ->middleware('admin.permission:videos.upload')
                 ->name('videos.upload.store');
+
+            Route::post(
+                '/videos/upload/seasons',
+                [VideoUploadController::class, 'storeUploadSeason']
+            )->middleware('admin.permission:videos.upload')->name('videos.upload.seasons.store');
+
+            Route::post(
+                '/videos/upload/episodes',
+                [VideoUploadController::class, 'storeUploadEpisode']
+            )->middleware('admin.permission:videos.upload')->name('videos.upload.episodes.store');
 
             Route::get(
                 '/videos/processing/{processingJob}/status',
                 [VideoUploadController::class, 'status']
             )
-                // ->middleware('admin.permission:servers.view')
+                ->middleware('admin.permission:videos.view')
                 ->name('videos.processing.status');
+
+
+            // forum manage
+
+            Route::prefix('forum')
+                ->name('forum.')
+                ->group(function () {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Forum Dashboard
+                    |--------------------------------------------------------------------------
+                    */
+
+                    Route::get('/', [App\Http\Controllers\admin\ForumController::class, 'index'])
+                        ->middleware('admin.permission:forum.view')
+                        ->name('index');
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Forum Categories
+                    |--------------------------------------------------------------------------
+                    */
+
+                    Route::get('/categories', [App\Http\Controllers\admin\ForumController::class, 'categories'])
+                        ->middleware('admin.permission:forum.categories.view')
+                        ->name('categories');
+
+                    Route::get('/categories/create', [App\Http\Controllers\admin\ForumController::class, 'createCategory'])
+                        ->middleware('admin.permission:forum.categories.manage')
+                        ->name('categories.create');
+
+                    Route::post('/categories', [App\Http\Controllers\admin\ForumController::class, 'storeCategory'])
+                        ->middleware('admin.permission:forum.categories.manage')
+                        ->name('categories.store');
+
+                    Route::get('/categories/{category}/edit', [App\Http\Controllers\admin\ForumController::class, 'editCategory'])
+                        ->middleware('admin.permission:forum.categories.manage')
+                        ->name('categories.edit');
+
+                    Route::put('/categories/{category}', [App\Http\Controllers\admin\ForumController::class, 'updateCategory'])
+                        ->middleware('admin.permission:forum.categories.manage')
+                        ->name('categories.update');
+
+                    Route::patch('/categories/{category}/toggle', [App\Http\Controllers\admin\ForumController::class, 'toggleCategory'])
+                        ->middleware('admin.permission:forum.categories.manage')
+                        ->name('categories.toggle');
+
+                    Route::delete('/categories/{category}', [App\Http\Controllers\admin\ForumController::class, 'destroyCategory'])
+                        ->middleware('admin.permission:forum.categories.manage')
+                        ->name('categories.destroy');
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Forum Posts
+                    |--------------------------------------------------------------------------
+                    */
+
+                    Route::get('/posts', [App\Http\Controllers\admin\ForumController::class, 'posts'])
+                        ->middleware('admin.permission:forum.posts.view')
+                        ->name('posts');
+
+                    Route::get('/posts/{post}/edit', [App\Http\Controllers\admin\ForumController::class, 'editPost'])
+                        ->middleware('admin.permission:forum.posts.manage')
+                        ->name('posts.edit');
+
+                    Route::put('/posts/{post}', [App\Http\Controllers\admin\ForumController::class, 'updatePost'])
+                        ->middleware('admin.permission:forum.posts.manage')
+                        ->name('posts.update');
+
+                    Route::patch('/posts/{post}/pin', [App\Http\Controllers\admin\ForumController::class, 'togglePostPin'])
+                        ->middleware('admin.permission:forum.posts.manage')
+                        ->name('posts.pin');
+
+                    Route::patch('/posts/{post}/lock', [App\Http\Controllers\admin\ForumController::class, 'togglePostLock'])
+                        ->middleware('admin.permission:forum.posts.manage')
+                        ->name('posts.lock');
+
+                    Route::delete('/posts/{post}', [App\Http\Controllers\admin\ForumController::class, 'deletePost'])
+                        ->middleware('admin.permission:forum.posts.manage')
+                        ->name('posts.destroy');
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Forum Comments
+                    |--------------------------------------------------------------------------
+                    */
+
+                    Route::get('/comments', [App\Http\Controllers\admin\ForumController::class, 'comments'])
+                        ->middleware('admin.permission:forum.comments.view')
+                        ->name('comments');
+
+                    Route::patch('/comments/{comment}/status', [App\Http\Controllers\admin\ForumController::class, 'updateCommentStatus'])
+                        ->middleware('admin.permission:forum.comments.manage')
+                        ->name('comments.status');
+
+                    Route::delete('/comments/{comment}', [App\Http\Controllers\admin\ForumController::class, 'deleteComment'])
+                        ->middleware('admin.permission:forum.comments.manage')
+                        ->name('comments.destroy');
+                });
 
         });
 
     });
+
+
+Route::get('/{slug}', [ \App\Http\Controllers\client\PageController::class, 'show'])
+    ->name('client.pages.show');

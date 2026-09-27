@@ -500,9 +500,9 @@
                 </table>
             </div>
 
-            @if(method_exists($recentActivities, 'links'))
+            @if(method_exists($recentActivities, 'hasPages') && $recentActivities->hasPages())
                 <div class="pagination">
-                    {{ $recentActivities->links() }}
+                    {{ $recentActivities->links('pagination::custom') }}
                 </div>
             @endif
 
@@ -566,9 +566,9 @@
                 </table>
             </div>
 
-            @if(method_exists($favorites, 'links'))
+            @if(method_exists($favorites, 'hasPages') && $favorites->hasPages())
                 <div class="pagination">
-                    {{ $favorites->links() }}
+                    {{ $favorites->links('pagination::custom') }}
                 </div>
             @endif
 
@@ -646,9 +646,9 @@
                 </table>
             </div>
 
-            @if(method_exists($comments, 'links'))
+            @if(method_exists($comments, 'hasPages') && $comments->hasPages())
                 <div class="pagination">
-                    {{ $comments->links() }}
+                    {{ $comments->links('pagination::custom') }}
                 </div>
             @endif
 
@@ -717,9 +717,9 @@
                 </table>
             </div>
 
-            @if(method_exists($ratings, 'links'))
+            @if(method_exists($ratings, 'hasPages') && $ratings->hasPages())
                 <div class="pagination">
-                    {{ $ratings->links() }}
+                    {{ $ratings->links('pagination::custom') }}
                 </div>
             @endif
 
@@ -793,9 +793,9 @@
                 </table>
             </div>
 
-            @if(method_exists($devices, 'links'))
+            @if(method_exists($devices, 'hasPages') && $devices->hasPages())
                 <div class="pagination">
-                    {{ $devices->links() }}
+                    {{ $devices->links('pagination::custom') }}
                 </div>
             @endif
 
@@ -965,7 +965,7 @@
                                 </td>
 
                                 <td>
-                                    @if($notification->is_read)
+                                    @if($notification->read_at)
                                         Đã đọc
                                     @else
                                         Chưa đọc
@@ -993,9 +993,9 @@
                 </table>
             </div>
 
-            @if(method_exists($notifications, 'links'))
+            @if(method_exists($notifications, 'hasPages') && $notifications->hasPages())
                 <div class="pagination">
-                    {{ $notifications->links() }}
+                    {{ $notifications->links('pagination::custom') }}
                 </div>
             @endif
 

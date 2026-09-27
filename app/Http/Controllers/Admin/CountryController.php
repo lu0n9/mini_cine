@@ -14,7 +14,7 @@ class CountryController extends Controller
     {
         $countries = Country::withCount('movies')
             ->orderBy('name')
-            ->get();
+            ->paginate(15);
 
         return view('admin.pages.country.countries', compact('countries'));
     }

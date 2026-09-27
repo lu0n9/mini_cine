@@ -27,6 +27,16 @@
         ✓ {{ session('report_success') }}
     </div>
 @endif
+    @if(!$hasPremiumAccess)
+        <div id="premium-watch-notice" style="padding:14px 18px;margin:0 0 16px;border:1px solid #7c3aed;background:#1e1b4b;border-radius:10px;color:#e9d5ff">
+            <strong>Gói miễn phí:</strong> bạn xem được tối đa 10% thời lượng phim này.
+            <a href="{{ route('premium.index') }}" style="color:white;font-weight:700;margin-left:8px">Nâng cấp Premium để xem toàn bộ →</a>
+        </div>
+        <div id="premium-watch-locked" style="display:none;padding:24px;margin:0 0 16px;text-align:center;border:1px solid #7c3aed;background:#1e1b4b;border-radius:10px;color:#fff">
+            <strong>Đã hết thời lượng xem miễn phí của phim này.</strong>
+            <a href="{{ route('premium.index') }}" style="display:inline-block;margin-left:10px;color:#ddd6fe;font-weight:700">Chọn gói Premium</a>
+        </div>
+    @endif
     <!-- 1. KHUNG PHÁT VIDEO CHÍNH -->
     <div class="video-player-wrapper">
         <div class="video-container">
@@ -35,6 +45,8 @@
                 class="video-js-player" 
                 controls 
                 crossorigin="anonymous"
+                @if($systemSettings->player_autoplay) autoplay @endif
+                @if(!$systemSettings->player_pip) disablepictureinpicture @endif
                 preload="metadata" 
                 poster="{{ $movie->backdrop ?? 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1280&q=80' }}">
                 
@@ -157,7 +169,7 @@
                 </div>
                 <div class="episode-grid">
                     @foreach($movie->episodes as $ep)
-                        <a href="{{ route('movies.watch', ['slug' => $movie->slug, 'ep' => $ep->episode_number]) }}" 
+                        <a href="{{ route('movies.watch', ['slug' => $movie->slug, 'episode' => $ep->id]) }}"
                            class="ep-btn {{ $ep->id === $currentEpisode->id ? 'active' : '' }}"
                            style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
                             {{ $ep->episode_number }}
@@ -402,9 +414,21 @@
         const streamUrl = @json($streamUrl ?? '');
         const savedWatchTime = @json($savedWatchTime ?? 0);
         const isAuthenticated = @json(auth()->check());
+        const hasPremiumAccess = @json($hasPremiumAccess);
+        const configuredWatchLimit = @json($watchLimitSeconds);
+        const autoNextEpisode = @json($systemSettings->player_auto_next);
+        const nextEpisodeUrl = @json($nextEpisode ? route('movies.watch', ['slug' => $movie->slug, 'episode' => $nextEpisode->id]) : null);
+        let watchLimit = configuredWatchLimit;
         let hasSeeked = false;
 
         if (video && streamUrl) {
+            video.disablePictureInPicture = !@json($systemSettings->player_pip);
+            if (autoNextEpisode && nextEpisodeUrl) {
+                video.addEventListener('ended', function () {
+                    window.location.assign(nextEpisodeUrl);
+                });
+            }
+
             // 1. Khởi tạo HLS
             if (Hls.isSupported()) {
                 const hls = new Hls({ capLevelToPlayerSize: true, autoStartLoad: true });
@@ -426,6 +450,32 @@
                         hasSeeked = true;
                     }
                 });
+            }
+
+            if (!hasPremiumAccess) {
+                const lockedMessage = document.getElementById('premium-watch-locked');
+                const applyWatchLimit = function () {
+                    if (watchLimit === null && Number.isFinite(video.duration) && video.duration > 0) {
+                        watchLimit = Math.floor(video.duration * 0.10);
+                    }
+                    if (watchLimit === 0) {
+                        video.pause();
+                        lockedMessage.style.display = 'block';
+                        return;
+                    }
+                    if (watchLimit !== null && video.currentTime >= watchLimit) {
+                        video.currentTime = watchLimit;
+                        video.pause();
+                        lockedMessage.style.display = 'block';
+                    }
+                };
+                video.addEventListener('timeupdate', applyWatchLimit);
+                video.addEventListener('seeking', function () {
+                    if (watchLimit !== null && video.currentTime > watchLimit) {
+                        video.currentTime = watchLimit;
+                    }
+                });
+                video.addEventListener('loadedmetadata', applyWatchLimit);
             }
 
             // 2. Tự động lưu tiến trình xem (chỉ thực hiện khi User đã đăng nhập)
@@ -464,5 +514,3 @@
     })();
 </script>
 @endsection
-
-

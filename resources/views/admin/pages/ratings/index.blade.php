@@ -118,7 +118,7 @@
 
         {{-- PAGINATION --}}
         @if($ratings->hasPages())
-            <div style="margin-top:20px;">
+            <div class="pagination">
                 {{ $ratings->links('pagination::custom') }}
             </div>
         @endif

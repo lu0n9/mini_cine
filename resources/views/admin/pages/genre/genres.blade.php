@@ -110,6 +110,12 @@
         </table>
     </div>
 
+    @if($genres->hasPages())
+        <div class="pagination">
+            {{ $genres->links('pagination::custom') }}
+        </div>
+    @endif
+
 </section>
 
 @endsection

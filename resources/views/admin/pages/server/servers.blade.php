@@ -15,6 +15,31 @@
         </a>
     </div>
 
+    <form method="GET" action="{{ route('admin.servers') }}" class="table-tools">
+        <span class="mini-search">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Tìm server, phim hoặc tập...">
+        </span>
+        <select class="filter" name="movie_id" aria-label="Lọc theo phim">
+            <option value="">Tất cả phim</option>
+            @foreach($movies as $movie)
+                <option value="{{ $movie->id }}" @selected((string) request('movie_id') === (string) $movie->id)>{{ $movie->title }}</option>
+            @endforeach
+        </select>
+        <select class="filter" name="type" aria-label="Lọc theo loại nguồn">
+            <option value="">Tất cả loại</option>
+            @foreach($sourceTypes as $sourceType)
+                <option value="{{ $sourceType }}" @selected(request('type') === $sourceType)>{{ strtoupper($sourceType) }}</option>
+            @endforeach
+        </select>
+        <select class="filter" name="active" aria-label="Lọc theo trạng thái">
+            <option value="">Mọi trạng thái</option>
+            <option value="1" @selected(request('active') === '1')>Đang bật</option>
+            <option value="0" @selected(request('active') === '0')>Đang tắt</option>
+        </select>
+        <button type="submit" class="filter on">Lọc</button>
+        <a href="{{ route('admin.servers') }}" class="filter">Xóa lọc</a>
+    </form>
+
     <div class="panel">
         <table>
             <thead>
@@ -157,6 +182,12 @@
             </tbody>
         </table>
     </div>
+
+    @if($sources->hasPages())
+        <div class="pagination">
+            {{ $sources->links('pagination::custom') }}
+        </div>
+    @endif
 
 </section>
 

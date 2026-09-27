@@ -4,13 +4,18 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessVideoToHls;
+use App\Models\ApiKey;
 use App\Models\Episode;
 use App\Models\Movie;
+use App\Models\Season;
 use App\Models\VideoProcessingJob;
+use App\Services\VideoProcessingCleanupService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class VideoUploadController extends Controller
@@ -20,6 +25,8 @@ class VideoUploadController extends Controller
      */
     public function create()
     {
+        ApiKey::syncProjectApis();
+
         $movies = Movie::query()
             ->orderBy('title')
             ->get([
@@ -38,13 +45,114 @@ class VideoUploadController extends Controller
             ->orderBy('episode_number')
             ->get();
 
+        $seasons = Season::query()
+            ->with('movie:id,title')
+            ->orderBy('movie_id')
+            ->orderBy('season_number')
+            ->get(['id', 'movie_id', 'season_number', 'name']);
+
+        // Fetch active video storage servers for server selector
+        $storageServers = ApiKey::where('type', 'video_storage')
+            ->where('status', 'active')
+            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->whereNotNull('endpoint')
+            ->where('endpoint', '!=', '')
+            ->whereNotNull('key')
+            ->where('key', '!=', '')
+            ->get(['id', 'name', 'endpoint']);
+
         return view(
             'admin.pages.video.upload',
             compact(
                 'movies',
-                'episodes'
+                'episodes',
+                'seasons',
+                'storageServers'
             )
         );
+    }
+
+    /** Create a season from the upload page without leaving the form. */
+    public function storeUploadSeason(Request $request)
+    {
+        $validated = $request->validate([
+            'movie_id' => ['required', 'integer', 'exists:movies,id'],
+            'season_number' => [
+                'required', 'integer', 'min:1',
+                Rule::unique('seasons', 'season_number')->where(fn ($query) => $query->where('movie_id', $request->input('movie_id'))),
+            ],
+            'name' => ['nullable', 'string', 'max:255'],
+        ], [
+            'season_number.unique' => 'Phim này đã có Season số :input.',
+        ]);
+
+        $season = Season::create([
+            'movie_id' => $validated['movie_id'],
+            'season_number' => $validated['season_number'],
+            'name' => $validated['name'] ?: 'Season ' . $validated['season_number'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'season' => [
+                'id' => $season->id,
+                'movie_id' => $season->movie_id,
+                'season_number' => $season->season_number,
+                'name' => $season->name,
+                'label' => ($season->name ?: 'Season ' . $season->season_number) . ' · Season ' . $season->season_number,
+            ],
+        ], 201);
+    }
+
+    /** Create an empty episode ready for video upload. */
+    public function storeUploadEpisode(Request $request)
+    {
+        $validated = $request->validate([
+            'movie_id' => ['required', 'integer', 'exists:movies,id'],
+            'season_id' => [
+                'required', 'integer',
+                Rule::exists('seasons', 'id')->where(fn ($query) => $query->where('movie_id', $request->input('movie_id'))),
+            ],
+            'episode_number' => [
+                'required', 'integer', 'min:1',
+                Rule::unique('episodes', 'episode_number')->where(fn ($query) => $query->where('movie_id', $request->input('movie_id'))->where('season_id', $request->input('season_id'))),
+            ],
+            'name' => ['nullable', 'string', 'max:255'],
+            'duration' => ['nullable', 'integer', 'min:1'],
+        ], [
+            'season_id.exists' => 'Season không thuộc Movie đang chọn.',
+            'episode_number.unique' => 'Season này đã có tập số :input.',
+        ]);
+
+        $episode = new Episode([
+            'movie_id' => $validated['movie_id'],
+            'season_id' => $validated['season_id'],
+            'episode_number' => $validated['episode_number'],
+            'name' => $validated['name'] ?: 'Tập ' . $validated['episode_number'],
+            'duration' => $validated['duration'] ?? null,
+        ]);
+        // Older installations may still have a required legacy video_url
+        // column. Newer schemas store the actual stream on MovieSource.
+        if (Schema::hasColumn('episodes', 'video_url')) {
+            $episode->forceFill(['video_url' => '']);
+        }
+        $episode->save();
+        $episode->load('season');
+
+        return response()->json([
+            'success' => true,
+            'episode' => [
+                'id' => $episode->id,
+                'movie_id' => $episode->movie_id,
+                'season_id' => $episode->season_id,
+                'episode_number' => $episode->episode_number,
+                'name' => $episode->name,
+                'season_number' => $episode->season?->season_number ?? 1,
+                'label' => 'S' . str_pad((string) ($episode->season?->season_number ?? 1), 2, '0', STR_PAD_LEFT)
+                    . ' E' . str_pad((string) $episode->episode_number, 2, '0', STR_PAD_LEFT)
+                    . ' — ' . $episode->name,
+            ],
+        ], 201);
     }
 
 
@@ -109,6 +217,23 @@ class VideoUploadController extends Controller
                     'string',
                     'max:10',
                 ],
+
+                'server_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('api_keys', 'id')->where(function ($query) {
+                        $query->where('type', 'video_storage')
+                            ->where('status', 'active')
+                            ->whereNotNull('endpoint')
+                            ->where('endpoint', '!=', '')
+                            ->whereNotNull('key')
+                            ->where('key', '!=', '')
+                            ->where(function ($expiry) {
+                                $expiry->whereNull('expires_at')
+                                    ->orWhere('expires_at', '>', now());
+                            });
+                    }),
+                ],
             ],
             [
                 'movie_id.required' =>
@@ -116,6 +241,9 @@ class VideoUploadController extends Controller
 
                 'episode_id.required' =>
                     'Vui lòng chọn tập phim.',
+
+                'server_id.exists' =>
+                    'Server lưu trữ không hợp lệ hoặc đã tắt. Hãy chọn API Video Storage & CDN đang hoạt động.',
 
                 'video.required' =>
                     'Vui lòng chọn video.',
@@ -508,7 +636,8 @@ class VideoUploadController extends Controller
             ProcessVideoToHls::dispatch(
                 $VideoProcessingJob->id,
                 $subtitles,
-                $subtitleDefaultLanguage
+                $subtitleDefaultLanguage,
+                !empty($validated['server_id']) ? (int) $validated['server_id'] : null
             );
 
 
@@ -523,6 +652,9 @@ class VideoUploadController extends Controller
 
                     'episode_id' =>
                         $episode->id,
+
+                    'server_id' =>
+                        $validated['server_id'] ?? null,
 
                     'subtitle_count' =>
                         count($subtitles),
@@ -644,7 +776,7 @@ class VideoUploadController extends Controller
     /**
      * API kiểm tra processing status.
      */
-    public function status($id)
+    public function status($id, VideoProcessingCleanupService $cleanupService)
     {
         $job =
             VideoProcessingJob::find($id);
@@ -670,6 +802,10 @@ class VideoUploadController extends Controller
             );
         }
 
+        $localSourceRemoved = $job->status === 'completed'
+            ? $cleanupService->cleanupCompletedJob($job)
+            : null;
+
 
         return response()->json(
             [
@@ -689,6 +825,8 @@ class VideoUploadController extends Controller
 
                 'error' =>
                     $job->error_message,
+
+                'local_source_removed' => $localSourceRemoved,
             ]
         );
     }

@@ -38,6 +38,35 @@ class CrudService
 
 
     /**
+     * Lấy danh sách bản ghi phân trang
+     */
+    public function paginate(
+        string $modelClass,
+        int $perPage = 15,
+        array $with = [],
+        array $withCount = [],
+        ?string $orderBy = null,
+        string $direction = 'asc'
+    ) {
+        $query = $modelClass::query();
+
+        if (!empty($with)) {
+            $query->with($with);
+        }
+
+        if (!empty($withCount)) {
+            $query->withCount($withCount);
+        }
+
+        if ($orderBy) {
+            $query->orderBy($orderBy, $direction);
+        }
+
+        return $query->paginate($perPage);
+    }
+
+
+    /**
      * Tìm một bản ghi hoặc trả về 404
      */
     public function findOrFail(

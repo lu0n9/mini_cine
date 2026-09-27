@@ -23,6 +23,19 @@
 
     </div>
 
+    <form method="GET" action="{{ route('admin.seasons') }}" class="table-tools">
+        <span class="mini-search">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Tìm tên phim hoặc season...">
+        </span>
+        <select class="filter" name="movie_id" aria-label="Lọc theo phim">
+            <option value="">Tất cả phim</option>
+            @foreach($movies as $movie)
+                <option value="{{ $movie->id }}" @selected((string) request('movie_id') === (string) $movie->id)>{{ $movie->title }}</option>
+            @endforeach
+        </select>
+        <button type="submit" class="filter on">Lọc</button>
+        <a href="{{ route('admin.seasons') }}" class="filter">Xóa lọc</a>
+    </form>
 
     {{-- ================= TABLE ================= --}}
     <div class="panel">
@@ -157,6 +170,12 @@
         </table>
 
     </div>
+
+    @if($seasons->hasPages())
+        <div class="pagination">
+            {{ $seasons->links('pagination::custom') }}
+        </div>
+    @endif
 
 </section>
 

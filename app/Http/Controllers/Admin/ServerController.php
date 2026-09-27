@@ -15,15 +15,48 @@ class ServerController extends Controller
     /**
      * Danh sách tất cả server/source
      */
-    public function index()
+    public function index(Request $request)
     {
-        $sources = MovieSource::with(['movie', 'episode'])
+        $query = MovieSource::with(['movie', 'episode']);
+
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $query->where(function ($sourceQuery) use ($search) {
+                $sourceQuery->where('server_name', 'like', "%{$search}%")
+                    ->orWhere('quality', 'like', "%{$search}%")
+                    ->orWhereHas('movie', function ($movieQuery) use ($search) {
+                        $movieQuery->where('title', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('episode', function ($episodeQuery) use ($search) {
+                        $episodeQuery->where('episode_number', 'like', "%{$search}%")
+                            ->orWhere('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($request->filled('movie_id')) {
+            $query->where('movie_id', $request->input('movie_id'));
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
+        if ($request->input('active') === '1' || $request->input('active') === '0') {
+            $query->where('is_active', $request->input('active') === '1');
+        }
+
+        $sources = $query
             ->orderBy('movie_id')
             ->orderBy('episode_id')
             ->orderBy('server_name')
-            ->get();
+            ->paginate(15)
+            ->withQueryString();
 
-        return view('admin.pages.server.servers', compact('sources'));
+        $movies = Movie::orderBy('title')->get(['id', 'title']);
+        $sourceTypes = MovieSource::query()->whereNotNull('type')->distinct()->orderBy('type')->pluck('type');
+
+        return view('admin.pages.server.servers', compact('sources', 'movies', 'sourceTypes'));
     }
 
     

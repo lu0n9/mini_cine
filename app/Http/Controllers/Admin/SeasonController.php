@@ -10,14 +10,29 @@ use Illuminate\Validation\Rule;
 
 class SeasonController extends Controller
 {
-    public function seasons()
+    public function seasons(Request $request)
     {
-        $seasons = Season::with('movie')
-        ->withCount('episodes')
-        ->orderBy('movie_id')
-        ->orderBy('season_number')
-        ->get();
-        return view('admin.pages.seasons.seasons',compact('seasons'));
+        $query = Season::with('movie')->withCount('episodes');
+
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $query->where(function ($seasonQuery) use ($search) {
+                $seasonQuery->where('name', 'like', "%{$search}%")
+                    ->orWhere('season_number', 'like', "%{$search}%")
+                    ->orWhereHas('movie', function ($movieQuery) use ($search) {
+                        $movieQuery->where('title', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($request->filled('movie_id')) {
+            $query->where('movie_id', $request->input('movie_id'));
+        }
+
+        $seasons = $query->orderBy('movie_id')->orderBy('season_number')->paginate(15)->withQueryString();
+        $movies = Movie::orderBy('title')->get(['id', 'title']);
+
+        return view('admin.pages.seasons.seasons', compact('seasons', 'movies'));
     }
 
     public function createSeason(){

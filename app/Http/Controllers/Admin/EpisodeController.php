@@ -11,14 +11,44 @@ use Illuminate\Validation\Rule;
 
 class EpisodeController extends Controller
 {
-    public function episodes()
+    public function episodes(Request $request)
     {
-         $episodes = Episode::with(['movie', 'season'])
+        $query = Episode::with(['movie', 'season']);
+
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $query->where(function ($episodeQuery) use ($search) {
+                $episodeQuery->where('name', 'like', "%{$search}%")
+                    ->orWhere('episode_number', 'like', "%{$search}%")
+                    ->orWhereHas('movie', function ($movieQuery) use ($search) {
+                        $movieQuery->where('title', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($request->filled('movie_id')) {
+            $query->where('movie_id', $request->input('movie_id'));
+        }
+
+        if ($request->filled('season_id')) {
+            $query->where('season_id', $request->input('season_id'));
+        }
+
+        if ($request->input('published') === '1' || $request->input('published') === '0') {
+            $query->where('is_published', $request->input('published') === '1');
+        }
+
+        $episodes = $query
             ->orderBy('movie_id')
             ->orderBy('season_id')
             ->orderBy('episode_number')
-            ->get();
-        return view('admin.pages.episode.episodes',compact('episodes'));
+            ->paginate(15)
+            ->withQueryString();
+
+        $movies = Movie::orderBy('title')->get(['id', 'title']);
+        $seasons = Season::with('movie')->orderBy('movie_id')->orderBy('season_number')->get();
+
+        return view('admin.pages.episode.episodes', compact('episodes', 'movies', 'seasons'));
     }
 
     /**

@@ -170,6 +170,12 @@
 
     </div>
 
+    @if($people->hasPages())
+        <div class="pagination">
+            {{ $people->links('pagination::custom') }}
+        </div>
+    @endif
+
 </section>
 
 @endsection
