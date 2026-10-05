@@ -196,10 +196,10 @@
       <a href="{{ route('admin.system.api') }}" class="nav-item">API</a>
     </details>
 
-    <!-- <a href="{{ route('admin.setting.index') }}" class="nav-item solo">
+    <a href="{{ route('admin.setting.index') }}" class="nav-item solo">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 2.6 7"/></svg>
       Cài đặt
-    </a> -->
+    </a>
 
     @php
       $sidebarAdmin = auth('admin')->user();
